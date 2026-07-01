@@ -784,10 +784,17 @@ async function openCam(){
     $('cam-live').style.display='block';
     $('cam-preview').style.display='none';
     try{
-        camStream=await navigator.mediaDevices.getUserMedia({
-            video:{facingMode:camFacing,width:{ideal:1280},height:{ideal:960}},
-            audio:false
-        });
+        const constraints = {video:{facingMode:camFacing,width:{ideal:3840},height:{ideal:2160},frameRate:{ideal:30}},audio:false};
+        // If high-res fails, fallback to any available
+        try {
+            camStream = await navigator.mediaDevices.getUserMedia(constraints);
+        } catch(e1) {
+            try {
+                camStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:camFacing},audio:false});
+            } catch(e2) {
+                throw e1;
+            }
+        }
         $('cam-video').srcObject=camStream;
         $('cam-hint').textContent='点击圆圈拍照';
     }catch(e){
@@ -804,10 +811,9 @@ async function switchCam(){
     camFacing=camFacing==='environment'?'user':'environment';
     if(camStream){camStream.getTracks().forEach(t=>t.stop())}
     try{
-        camStream=await navigator.mediaDevices.getUserMedia({
-            video:{facingMode:camFacing,width:{ideal:1280},height:{ideal:960}},
-            audio:false
-        });
+        const constraints={video:{facingMode:camFacing,width:{ideal:3840},height:{ideal:2160},frameRate:{ideal:30}},audio:false};
+        try{camStream=await navigator.mediaDevices.getUserMedia(constraints)}
+        catch(e1){camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:camFacing},audio:false})}
         $('cam-video').srcObject=camStream;
     }catch(e){
         $('cam-hint').textContent='切换失败: '+e.message;
@@ -816,9 +822,13 @@ async function switchCam(){
 function snapPhoto(){
     if(!camStream)return;
     const v=$('cam-video'),canvas=document.createElement('canvas');
-    canvas.width=v.videoWidth||640;canvas.height=v.videoHeight||480;
-    const ctx=canvas.getContext('2d');ctx.drawImage(v,0,0);
-    snapData=canvas.toDataURL('image/jpeg',0.85);
+    // Use full video frame resolution for highest quality
+    const track=camStream.getVideoTracks()[0];
+    const settings=track.getSettings();
+    canvas.width=settings.width||v.videoWidth||1920;
+    canvas.height=settings.height||v.videoHeight||1080;
+    const ctx=canvas.getContext('2d');ctx.drawImage(v,0,0,canvas.width,canvas.height);
+    snapData=canvas.toDataURL('image/jpeg',0.95);
     // Flash effect
     const fl=$('cam-flash');fl.classList.remove('fire');void fl.offsetWidth;fl.classList.add('fire');
     // Show preview
@@ -839,28 +849,113 @@ function retakeSnap(){
 }
 
 // ==================== VOICE INPUT ====================
-let voiceRec=null,isRec=false;
+let voiceRec=null,isRec=false,isRecordingAudio=false,audioRecorder=null,audioChunks=[];
 
-function toggleVoice(){
-    const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
-    if(!SpeechRecognition){
-        // Fallback: use native input with speech attribute
+// MediaRecorder-based recording (works in WeChat & all modern browsers)
+async function startAudioRecording(){
+    try{
+        const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+        audioChunks=[];
+        // Try to use a widely supported MIME type
+        let mimeType='audio/webm;codecs=opus';
+        if(!MediaRecorder.isTypeSupported(mimeType)){
+            mimeType='audio/mp4';
+            if(!MediaRecorder.isTypeSupported(mimeType)){
+                mimeType='audio/webm';
+                if(!MediaRecorder.isTypeSupported(mimeType)){
+                    mimeType='';
+                }
+            }
+        }
+        const options=mimeType?{mimeType:mimeType}:{};
+        audioRecorder=new MediaRecorder(stream,options);
+        audioRecorder.ondataavailable=(e)=>{if(e.data.size>0)audioChunks.push(e.data)};
+        audioRecorder.onstop=()=>{
+            const blob=new Blob(audioChunks,{type:mimeType||'audio/webm'});
+            const reader=new FileReader();
+            reader.onload=(ev)=>{
+                const base64=ev.target.result;
+                attachments.push({type:'audio',data:base64,name:'录音_'+new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})+'.webm'});
+                renderAtt();
+                $('main-input').value+='[已添加录音，AI将自动转录分析]\n';
+            };
+            reader.readAsDataURL(blob);
+            stream.getTracks().forEach(t=>t.stop());
+        };
+        audioRecorder.start();
+        isRecordingAudio=true;
+        const btn=$('voice-btn');btn.classList.add('rec');
+        $('voice-icon').textContent='⏹️';$('voice-label').textContent='录音中...';
+        // Auto-stop after 60s
+        setTimeout(()=>{if(isRecordingAudio)stopAudioRecording()},60000);
+    }catch(e){
+        console.warn('MediaRecorder failed:',e);
+        // Fallback to file input
         if(!document.getElementById('f-voice')){
             const inp=document.createElement('input');
             inp.id='f-voice';inp.type='file';inp.accept='audio/*';inp.capture='microphone';
             inp.style.display='none';inp.className='hf';
-            inp.onchange=function(e){
-                if(e.target.files[0]){
-                    const url=URL.createObjectURL(e.target.files[0]);
-                    attachments.push({type:'video',data:url,name:'语音_'+e.target.files[0].name});
-                    renderAtt();
-                    $('main-input').value+='[已录制语音，需AI转录分析]\n';
+            inp.onchange=function(ev){
+                if(ev.target.files[0]){
+                    const file=ev.target.files[0];
+                    const reader=new FileReader();
+                    reader.onload=function(e2){
+                        attachments.push({type:'audio',data:e2.target.result,name:'录音_'+file.name});
+                        renderAtt();
+                        $('main-input').value+='[已添加录音，AI将自动转录分析]\n';
+                    };
+                    reader.readAsDataURL(file);
                 }
-                e.target.value='';
+                ev.target.value='';
             };
             document.body.appendChild(inp);
         }
         document.getElementById('f-voice').click();
+    }
+}
+function stopAudioRecording(){
+    isRecordingAudio=false;
+    if(audioRecorder&&audioRecorder.state!=='inactive'){audioRecorder.stop();audioRecorder=null}
+    const btn=$('voice-btn');btn.classList.remove('rec');
+    $('voice-icon').textContent='🎤';$('voice-label').textContent='语音输入';
+}
+
+function toggleVoice(){
+    const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+    
+    if(!SpeechRecognition || isWechat){
+        // Fallback: use native audio recording with MediaRecorder or file input
+        if(isRecordingAudio){
+            stopAudioRecording();
+            return;
+        }
+        // Try MediaRecorder API first (better UX)
+        if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && typeof MediaRecorder !== 'undefined'){
+            startAudioRecording();
+        } else {
+            // Ultimate fallback: system file picker
+            if(!document.getElementById('f-voice')){
+                const inp=document.createElement('input');
+                inp.id='f-voice';inp.type='file';inp.accept='audio/*';inp.capture='microphone';
+                inp.style.display='none';inp.className='hf';
+                inp.onchange=function(e){
+                    if(e.target.files[0]){
+                        const file=e.target.files[0];
+                        const reader=new FileReader();
+                        reader.onload=function(ev){
+                            const base64=ev.target.result;
+                            attachments.push({type:'audio',data:base64,name:'录音_'+file.name});
+                            renderAtt();
+                            $('main-input').value+='[已添加录音，AI将自动转录分析]\n';
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                    e.target.value='';
+                };
+                document.body.appendChild(inp);
+            }
+            document.getElementById('f-voice').click();
+        }
         return;
     }
 
