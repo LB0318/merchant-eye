@@ -1048,6 +1048,24 @@ if (isWechat) {
     }
 }
 
+// ==================== VERSION & AUTO UPDATE ====================
+const APP_VERSION='v20260702b';
+// Check for updates every 30 seconds
+setInterval(()=>{
+    fetch('index.html',{cache:'no-store',method:'HEAD'}).then(r=>{
+        const srv=r.headers.get('etag')||r.headers.get('last-modified')||'';
+        if(window._lastEtag&&window._lastEtag!==srv){
+            // New version detected
+            const notice=document.createElement('div');
+            notice.style.cssText='position:fixed;top:0;left:0;right:0;background:var(--gold);color:var(--bg);text-align:center;padding:10px;font-size:.85rem;font-weight:700;z-index:9999;font-family:var(--fb);cursor:pointer';
+            notice.textContent='✨ 新版本已更新，点击刷新';
+            notice.onclick=()=>location.reload();
+            document.body.appendChild(notice);
+        }
+        window._lastEtag=srv;
+    }).catch(()=>{});
+},30000);
+
 // ==================== SERVICE WORKER ====================
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
