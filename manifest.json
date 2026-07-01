@@ -1,0 +1,24 @@
+{
+  "name": "商人之眼 — AI商业分析引擎",
+  "short_name": "商人之眼",
+  "description": "输入任何商业观察，AI自动运行全套思维框架，输出深度解读与行动方案。",
+  "start_url": "/merchant-eye-toolkit.html",
+  "display": "standalone",
+  "background_color": "#0a0c10",
+  "theme_color": "#0a0c10",
+  "orientation": "portrait",
+  "scope": "/",
+  "lang": "zh-CN",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='192' height='192' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='24' fill='%230a0c10'/%3E%3Ctext x='96' y='120' font-family='serif' font-size='100' fill='%23c8a84e' text-anchor='middle'%3E%E7%9C%BC%3C/text%3E%3C/svg%3E",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='512' height='512' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='64' fill='%230a0c10'/%3E%3Ctext x='256' y='320' font-family='serif' font-size='280' fill='%23c8a84e' text-anchor='middle'%3E%E7%9C%BC%3C/text%3E%3C/svg%3E",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}

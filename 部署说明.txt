@@ -1,0 +1,86 @@
+# 商人之眼 — 部署到 GitHub Pages 的完整步骤
+
+## 第一步：创建 GitHub Token（只需一次）
+
+1. 打开 https://github.com/settings/tokens/new
+2. Note 填写：`merchant-eye-deploy`
+3. Expiration 选：`No expiration`（永不过期）
+4. 勾选权限：**repo**（第一个复选框，勾上即可）
+5. 点击 **Generate token**
+6. **复制生成的 token**（只显示一次！）
+
+## 第二步：运行部署脚本
+
+把复制的 token 填入下方命令中的 `YOUR_GITHUB_TOKEN` 位置，然后运行：
+
+```powershell
+$TOKEN = "YOUR_GITHUB_TOKEN"
+$USER = "LB"  # 你的 GitHub 用户名，如果不是 LB 请修改
+
+# 设置 git 认证
+git config --global user.email "lb@example.com"
+git config --global user.name "$USER"
+
+# 进入部署目录
+cd "c:\Users\LB\.trae-cn\work\6a43cba7bf57b6ba426d8b2c\merchant-eye-deploy"
+
+# 初始化仓库
+git init
+git checkout -b main
+
+# 添加远程仓库（用 API 创建私有仓库）
+$repoName = "merchant-eye"
+$headers = @{
+    "Authorization" = "Bearer $TOKEN"
+    "Accept" = "application/vnd.github+json"
+}
+$body = @{
+    name = $repoName
+    private = $true
+    auto_init = $false
+} | ConvertTo-Json
+
+$resp = Invoke-RestMethod -Uri "https://api.github.com/user/repos" -Method POST -Headers $headers -Body $body -ContentType "application/json"
+$repoUrl = $resp.clone_url
+
+# 关联远程仓库
+git remote add origin "https://${USER}:${TOKEN}@github.com/${USER}/${repoName}.git"
+
+# 提交并推送
+git add .
+git commit -m "商人之眼 AI商业分析引擎 - 初始部署"
+git push -u origin main
+
+Write-Output "`n============================="
+Write-Output "推送成功！"
+
+# 开启 GitHub Pages
+$pagesBody = @{
+    source = @{
+        branch = "main"
+        path = "/"
+    }
+} | ConvertTo-Json
+
+try {
+    Invoke-RestMethod -Uri "https://api.github.com/repos/${USER}/${repoName}/pages" -Method POST -Headers $headers -Body $pagesBody -ContentType "application/json" | Out-Null
+    Write-Output "GitHub Pages 已开启！"
+} catch {
+    Write-Output "Pages 启用中...（可能需要等待几秒再试）"
+}
+
+Write-Output "`n你的工具地址（1-2分钟后生效）："
+Write-Output "https://${USER}.github.io/${repoName}/"
+Write-Output "============================="
+```
+
+## 第三步：分享链接
+
+等 1-2 分钟后，打开上面的链接确认能访问，然后直接发到微信即可。
+
+**以后更新**：修改 `merchant-eye-toolkit.html` 后，在部署目录运行：
+```powershell
+cd "c:\Users\LB\.trae-cn\work\6a43cba7bf57b6ba426d8b2c\merchant-eye-deploy"
+Copy-Item "源文件路径\merchant-eye-toolkit.html" "index.html" -Force
+git add . ; git commit -m "更新" ; git push
+```
