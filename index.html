@@ -325,14 +325,16 @@
 
 <script>
 // ==================== CONFIG ====================
-let cfg={prov:'deepseek',model:'deepseek-chat',key:'sk-7a6d6f75a03c4543a4bd9118e1f8a472',url:''};
+let cfg={prov:'deepseek',model:'deepseek-v4-flash',key:'sk-7a6d6f75a03c4543a4bd9118e1f8a472',url:''};
 let attachments=[];
 let ac=null;
 
 const PROVIDERS={
     deepseek:{name:'DeepSeek',url:'https://api.deepseek.com/v1/',models:[
-        {id:'deepseek-chat',label:'DeepSeek Chat（推荐）'},
-        {id:'deepseek-reasoner',label:'DeepSeek Reasoner（深度推理）'}
+        {id:'deepseek-v4-flash',label:'DeepSeek V4 Flash（推荐·便宜）'},
+        {id:'deepseek-v4-pro',label:'DeepSeek V4 Pro（深度推理）'},
+        {id:'deepseek-chat',label:'DeepSeek Chat（旧版·7/24废弃）'},
+        {id:'deepseek-reasoner',label:'DeepSeek Reasoner（旧版·7/24废弃）'}
     ]},
     zhipu:{name:'智谱 GLM',url:'https://open.bigmodel.cn/api/paas/v4/',models:[
         {id:'glm-4-plus',label:'GLM-4 Plus'},
@@ -370,7 +372,8 @@ const PROVIDERS={
     siliconflow:{name:'SiliconFlow',url:'https://api.siliconflow.cn/v1/',models:[
         {id:'deepseek-ai/DeepSeek-V3',label:'DeepSeek V3（免费）'},
         {id:'Qwen/Qwen2.5-72B-Instruct',label:'Qwen2.5 72B（免费）'},
-        {id:'THUDM/glm-4-9b-chat',label:'GLM-4 9B（免费）'}
+        {id:'THUDM/glm-4-9b-chat',label:'GLM-4 9B（免费）'},
+        {id:'Qwen/Qwen2.5-VL-72B-Instruct',label:'Qwen2.5 VL 72B（看图·免费）'}
     ]},
     doubao:{name:'豆包',url:'https://ark.cn-beijing.volces.com/api/v3/',models:[]},
     openai:{name:'OpenAI',url:'https://api.openai.com/v1/',models:[
@@ -658,8 +661,8 @@ async function callAI(messages,onChunk,onDone,onErr){
             const e=await r.json().catch(()=>({}));
             let errMsg=e.error?.message||r.status+'';
             // If vision error with non-vision model, suggest model change
-            if(hasImages && errMsg.includes('vision')||errMsg.includes('image')){
-                errMsg+='\n\n💡 提示：发送图片需要视觉模型。请将模型改为 gpt-4o、claude-3.5-sonnet 或其他支持图片的模型。';
+            if(hasImages && (errMsg.includes('vision')||errMsg.includes('image')||errMsg.includes('image_url'))){
+                errMsg+='\n\n💡 当前模型不支持图片，请点击右上角"配置 AI"切换到支持看图的模型（如 Qwen VL、GPT-4o 等）。';
             }
             onErr('API 错误: '+errMsg);return;
         }
@@ -725,6 +728,26 @@ async function run(){
 
     // Decide: use vision API or text API
     const hasImages=attachments.some(a=>a.type==='image');
+    
+    // Check if current model supports vision
+    const visionKeywords=['vl','vision','4o','gpt-4-turbo','gemini','claude-3','claude-sonnet','claude-haiku','qwen.*vl'];
+    const modelId=(cfg.model||'').toLowerCase();
+    const isVisionModel=visionKeywords.some(k=>modelId.includes(k));
+    
+    if(hasImages && !isVisionModel){
+        const useVision=confirm(
+            '📷 当前模型 "'+cfg.model+'" 不支持图片分析。\n\n'+
+            '推荐选择支持看图的模型：\n'+
+            '· SiliconFlow → Qwen2.5 VL 72B（免费）\n'+
+            '· 通义千问 → Qwen-VL Plus\n'+
+            '· 智谱 GLM → GLM-4V Plus\n'+
+            '· OpenAI → GPT-4o\n\n'+
+            '点击"确定"打开配置面板切换模型\n'+
+            '点击"取消"仍用当前模型（可能报错）'
+        );
+        if(useVision){openMo();btn.disabled=false;btn.textContent='🚀 运行全维分析';return}
+    }
+    
     let messages;
 
     if(hasImages){
