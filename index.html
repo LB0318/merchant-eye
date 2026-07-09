@@ -640,15 +640,23 @@ async function callAI(messages,onChunk,onDone,onErr){
 
     // Check if we have images - if so, need vision model
     const hasImages=attachments.some(a=>a.type==='image');
+    // Detect DeepSeek V4 for special handling
+    const isDeepSeekV4=(cfg.model||'').includes('v4-flash')||(cfg.model||'').includes('v4-pro');
 
     // Build request body
     const body={
         model:cfg.model,
         messages:messages,
         stream:true,
-        max_tokens:8000,
-        temperature:0.7
+        max_tokens:8000
     };
+    // DeepSeek V4: disable thinking mode for direct output
+    if(isDeepSeekV4){
+        body.thinking={type:'disabled'};
+        body.temperature=0.7;
+    }else{
+        body.temperature=0.7;
+    }
 
     try{
         const r=await fetch(baseUrl()+'chat/completions',{
@@ -750,22 +758,34 @@ async function run(){
     }
     
     let messages;
+    const isDeepSeekV4=(cfg.model||'').includes('v4-flash')||(cfg.model||'').includes('v4-pro');
 
     if(hasImages){
-        // Use vision format
-        const content=[];
-        if(text) content.push({type:'text',text:buildFullPrompt()});
-        // Rebuild prompt without image descriptions for the text part
         const promptText=buildFullPrompt();
-        // Replace image descriptions with actual image data
-        const userContent=[{type:'text',text:promptText}];
-        attachments.filter(a=>a.type==='image').forEach(a=>{
-            userContent.push({type:'image_url',image_url:{url:a.data}});
-        });
-        messages=[
-            {role:'system',content:'你是一位融合广告心理学、商业模式诊断、用户思维、财务分析和信息判断的顶级商业分析师——"商人之眼"。请按照用户要求的框架进行深度分析。逐项展开，每项都有"分析过程→结论"。用具体数字和场景论证，给出可直接行动的建议。用Markdown格式输出。'},
-            {role:'user',content:userContent}
-        ];
+        if(isDeepSeekV4){
+            // DeepSeek V4 uses top-level image_url field (not OpenAI content array format)
+            const imgs=attachments.filter(a=>a.type==='image').map(a=>a.data);
+            const userMsg={role:'user',content:promptText||'请分析这些图片中的商业元素'};
+            if(imgs.length===1){
+                userMsg.image_url={url:imgs[0]};
+            }else if(imgs.length>1){
+                userMsg.image_url=imgs.map(u=>({url:u}));
+            }
+            messages=[
+                {role:'system',content:'你是一位融合广告心理学、商业模式诊断、用户思维、财务分析和信息判断的顶级商业分析师——"商人之眼"。请按照用户要求的框架进行深度分析。逐项展开，每项都有"分析过程→结论"。用具体数字和场景论证，给出可直接行动的建议。用Markdown格式输出。'},
+                userMsg
+            ];
+        }else{
+            // OpenAI compatible format (GPT-4o, Qwen VL, etc.)
+            const userContent=[{type:'text',text:promptText||'请分析这些图片中的商业元素'}];
+            attachments.filter(a=>a.type==='image').forEach(a=>{
+                userContent.push({type:'image_url',image_url:{url:a.data}});
+            });
+            messages=[
+                {role:'system',content:'你是一位融合广告心理学、商业模式诊断、用户思维、财务分析和信息判断的顶级商业分析师——"商人之眼"。请按照用户要求的框架进行深度分析。逐项展开，每项都有"分析过程→结论"。用具体数字和场景论证，给出可直接行动的建议。用Markdown格式输出。'},
+                {role:'user',content:userContent}
+            ];
+        }
     }else{
         messages=[
             {role:'system',content:'你是一位融合广告心理学、商业模式诊断、用户思维、财务分析和信息判断的顶级商业分析师——"商人之眼"。请按照用户要求的框架进行深度分析。逐项展开，每项都有"分析过程→结论"。用具体数字和场景论证，给出可直接行动的建议。用Markdown格式输出。'},
