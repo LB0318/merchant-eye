@@ -761,11 +761,22 @@ async function run(){
     const isDeepSeekV4=(cfg.model||'').includes('v4-flash')||(cfg.model||'').includes('v4-pro');
 
     if(hasImages){
-        const promptText=buildFullPrompt();
+        // When images are present, only send user's actual text + system prompt (no image text placeholders)
+        const text=$('main-input').value.trim();
+        // Keep non-image attachment descriptions (links, videos)
+        const nonImgDesc=attachments.filter(a=>a.type!=='image').map(a=>{
+            if(a.type==='link') return '[附带链接: '+a.data+']';
+            if(a.type==='video') return '[附带视频: '+a.data+']';
+            if(a.type==='audio') return '[附带录音: 待AI转录分析]';
+            return '';
+        }).filter(Boolean).join('\n');
+        const userText=(text||'请分析图片中的商业元素')+(nonImgDesc?'\n\n'+nonImgDesc:'');
+        const fullPrompt=SYSTEM_PROMPT_FULL+'\n\n---\n\n以下是用户提供的输入内容：\n\n'+userText;
+        
         if(isDeepSeekV4){
             // DeepSeek V4 uses top-level image_url field (not OpenAI content array format)
             const imgs=attachments.filter(a=>a.type==='image').map(a=>a.data);
-            const userMsg={role:'user',content:promptText||'请分析这些图片中的商业元素'};
+            const userMsg={role:'user',content:fullPrompt};
             if(imgs.length===1){
                 userMsg.image_url={url:imgs[0]};
             }else if(imgs.length>1){
@@ -777,7 +788,7 @@ async function run(){
             ];
         }else{
             // OpenAI compatible format (GPT-4o, Qwen VL, etc.)
-            const userContent=[{type:'text',text:promptText||'请分析这些图片中的商业元素'}];
+            const userContent=[{type:'text',text:fullPrompt}];
             attachments.filter(a=>a.type==='image').forEach(a=>{
                 userContent.push({type:'image_url',image_url:{url:a.data}});
             });
