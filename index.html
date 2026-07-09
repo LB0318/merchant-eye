@@ -331,9 +331,9 @@ let ac=null;
 
 const PROVIDERS={
     deepseek:{name:'DeepSeek',url:'https://api.deepseek.com/v1/',models:[
-        {id:'deepseek-v4-flash',label:'DeepSeek V4 Flash（推荐·便宜）'},
-        {id:'deepseek-v4-pro',label:'DeepSeek V4 Pro（深度推理）'},
-        {id:'deepseek-chat',label:'DeepSeek Chat（旧版·7/24废弃）'},
+        {id:'deepseek-v4-flash',label:'DeepSeek V4 Flash（推荐·看图）'},
+        {id:'deepseek-v4-pro',label:'DeepSeek V4 Pro（深度推理·看图）'},
+        {id:'deepseek-chat',label:'DeepSeek Chat（旧版·7/24废弃·不支持看图）'},
         {id:'deepseek-reasoner',label:'DeepSeek Reasoner（旧版·7/24废弃）'}
     ]},
     zhipu:{name:'智谱 GLM',url:'https://open.bigmodel.cn/api/paas/v4/',models:[
@@ -730,7 +730,8 @@ async function run(){
     const hasImages=attachments.some(a=>a.type==='image');
     
     // Check if current model supports vision
-    const visionKeywords=['vl','vision','4o','gpt-4-turbo','gemini','claude-3','claude-sonnet','claude-haiku','qwen.*vl'];
+    // DeepSeek V4 (v4-flash, v4-pro) supports vision since 2026-06-18
+    const visionKeywords=['vl','vision','4o','gpt-4-turbo','gemini','claude-3','claude-sonnet','claude-haiku','qwen.*vl','v4-flash','v4-pro'];
     const modelId=(cfg.model||'').toLowerCase();
     const isVisionModel=visionKeywords.some(k=>modelId.includes(k));
     
