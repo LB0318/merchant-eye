@@ -259,6 +259,24 @@
                 <button class="bt" id="btn-test" onclick="testConn()">测试连接</button>
                 <div><span class="sd off" id="s-dot"></span><span class="st" id="s-txt">未测试</span></div>
             </div>
+            <!-- Vision model config -->
+            <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--bd)">
+                <div style="font-size:.85rem;font-weight:700;color:var(--gold);margin-bottom:10px">📷 看图模型（传图片时自动使用）</div>
+                <div class="sg"><label>看图服务商</label><select class="ss" id="cfg-vprov" onchange="onVProv()">
+                    <option value="qwen" selected>通义千问（推荐·免费额度大）</option>
+                    <option value="zhipu">智谱 GLM</option>
+                    <option value="siliconflow">SiliconFlow（免费）</option>
+                    <option value="openai">OpenAI</option>
+                    <option value="google">Google</option>
+                    <option value="anthropic">Anthropic</option>
+                </select></div>
+                <div class="sg"><label>看图模型</label><select class="ss" id="cfg-vmodel"><option value="qwen-vl-plus">Qwen-VL Plus</option></select></div>
+                <div class="sg"><label>看图 API Key</label><input type="password" class="si" id="cfg-vkey" placeholder="sk-..."></div>
+                <div style="font-size:.72rem;color:var(--tx3);margin-top:6px">
+                    <a href="https://dashscope.console.aliyun.com/" target="_blank" style="color:var(--gold)">通义千问注册 →</a>
+                    文字分析仍用上方的 DeepSeek，看图自动走此模型
+                </div>
+            </div>
             <div style="margin-top:20px;display:flex;gap:10px;justify-content:flex-end">
                 <button onclick="closeMo()" style="padding:9px 16px;border-radius:8px;background:transparent;color:var(--tx2);border:1px solid var(--bd);cursor:pointer;font-family:var(--fb);font-size:.82rem">取消</button>
                 <button onclick="saveCfg()" style="padding:9px 16px;border-radius:8px;background:var(--gold);color:var(--bg);border:none;font-weight:700;cursor:pointer;font-family:var(--fb);font-size:.82rem">保存</button>
@@ -326,6 +344,8 @@
 <script>
 // ==================== CONFIG ====================
 let cfg={prov:'deepseek',model:'deepseek-v4-flash',key:'sk-7a6d6f75a03c4543a4bd9118e1f8a472',url:''};
+// Vision fallback: when images are sent, auto-switch to this provider
+let visionCfg={prov:'qwen',model:'qwen-vl-plus',key:'',url:'https://dashscope.aliyuncs.com/compatible-mode/v1/'};
 let attachments=[];
 let ac=null;
 
@@ -434,11 +454,21 @@ const PROVIDERS={
     custom:{name:'自定义',url:'',models:[]}
 };
 
-function loadCfg(){try{const s=localStorage.getItem('me2_cfg');if(s)cfg=JSON.parse(s)}catch(e){}applyUI()}
-function saveCfg(){cfg.prov=$('cfg-prov').value;cfg.model=$('cfg-model').value;cfg.key=$('cfg-key').value.trim();cfg.url=$('cfg-url').value.trim();localStorage.setItem('me2_cfg',JSON.stringify(cfg));applyUI();closeMo()}
+function loadCfg(){try{const s=localStorage.getItem('me2_cfg');if(s)cfg=JSON.parse(s)}catch(e){}try{const v=localStorage.getItem('me2_vcfg');if(v)visionCfg=JSON.parse(v)}catch(e){}applyUI()}
+function saveCfg(){cfg.prov=$('cfg-prov').value;cfg.model=$('cfg-model').value;cfg.key=$('cfg-key').value.trim();cfg.url=$('cfg-url').value.trim();localStorage.setItem('me2_cfg',JSON.stringify(cfg));visionCfg.prov=$('cfg-vprov').value;visionCfg.model=$('cfg-vmodel').value;visionCfg.key=$('cfg-vkey').value.trim();visionCfg.url=PROVIDERS[visionCfg.prov]?.url||'';localStorage.setItem('me2_vcfg',JSON.stringify(visionCfg));applyUI();closeMo()}
 function applyUI(){const d=$('h-dot'),t=$('h-txt');if(cfg.key){const prov=PROVIDERS[cfg.prov];const n=prov?prov.name:'AI';t.textContent=n+' · '+cfg.model;d.className='d on'}else{t.textContent='配置 AI';d.className='d off'}}
-function openMo(){$('modal').classList.add('open');$('cfg-prov').value=cfg.prov;onProv();$('cfg-model').value=cfg.model;$('cfg-key').value=cfg.key;$('cfg-url').value=cfg.url||''}
+function openMo(){$('modal').classList.add('open');$('cfg-prov').value=cfg.prov;onProv();$('cfg-model').value=cfg.model;$('cfg-key').value=cfg.key;$('cfg-url').value=cfg.url||'';$('cfg-vprov').value=visionCfg.prov||'qwen';onVProv();$('cfg-vmodel').value=visionCfg.model||'qwen-vl-plus';$('cfg-vkey').value=visionCfg.key||''}
 function closeMo(){$('modal').classList.remove('open')}
+function onVProv(){
+    const p=$('cfg-vprov').value,sel=$('cfg-vmodel'),prov=PROVIDERS[p];
+    sel.innerHTML='';
+    if(prov){
+        // Filter to vision-capable models only
+        const vModels=prov.models.filter(m=>m.label.includes('看图')||m.label.includes('VL')||m.label.includes('V')||m.label.includes('4o')||m.label.includes('gemini')||m.label.includes('claude'));
+        const list=vModels.length?vModels:prov.models;
+        list.forEach(m=>{const o=document.createElement('option');o.value=m.id;o.textContent=m.label;sel.appendChild(o)});
+    }
+}
 function onProv(){
     const p=$('cfg-prov').value,sel=$('cfg-model-sel'),inp=$('cfg-model'),u=$('sg-url'),hint=$('model-hint');
     const prov=PROVIDERS[p];
@@ -634,18 +664,23 @@ function buildFullPrompt(){
 }
 
 // ==================== AI CALL ====================
-async function callAI(messages,onChunk,onDone,onErr){
-    if(!cfg.key){onErr('请先配置 AI API Key（右上角）');return}
+async function callAI(messages,onChunk,onDone,onErr,overrideProv){
+    if(!cfg.key && !overrideProv){onErr('请先配置 AI API Key（右上角）');return}
     ac=new AbortController();
+
+    // Determine which config to use
+    const activeProv = overrideProv || {prov:cfg.prov, model:cfg.model, key:cfg.key, url:cfg.url};
+    const activeKey = activeProv.key || cfg.key;
+    const activeUrl = activeProv.url || (PROVIDERS[activeProv.prov]?.url || '');
 
     // Check if we have images - if so, need vision model
     const hasImages=attachments.some(a=>a.type==='image');
     // Detect DeepSeek V4 for special handling
-    const isDeepSeekV4=(cfg.model||'').includes('v4-flash')||(cfg.model||'').includes('v4-pro');
+    const isDeepSeekV4=(activeProv.model||'').includes('v4-flash')||(activeProv.model||'').includes('v4-pro');
 
     // Build request body
     const body={
-        model:cfg.model,
+        model:activeProv.model,
         messages:messages,
         stream:true,
         max_tokens:8000
@@ -659,9 +694,9 @@ async function callAI(messages,onChunk,onDone,onErr){
     }
 
     try{
-        const r=await fetch(baseUrl()+'chat/completions',{
+        const r=await fetch((activeUrl||baseUrl())+'chat/completions',{
             method:'POST',
-            headers:{'Content-Type':'application/json','Authorization':'Bearer '+cfg.key},
+            headers:{'Content-Type':'application/json','Authorization':'Bearer '+activeKey},
             body:JSON.stringify(body),
             signal:ac.signal
         });
@@ -738,23 +773,30 @@ async function run(){
     const hasImages=attachments.some(a=>a.type==='image');
     
     // Check if current model supports vision
-    // DeepSeek V4 (v4-flash, v4-pro) supports vision since 2026-06-18
-    const visionKeywords=['vl','vision','4o','gpt-4-turbo','gemini','claude-3','claude-sonnet','claude-haiku','qwen.*vl','v4-flash','v4-pro'];
+    // DeepSeek API does NOT support vision (only web app does)
+    const noVisionProvs=['deepseek','moonshot','yi','baichuan','minimax','stepfun','cohere'];
+    const noVisionModels=['deepseek-chat','deepseek-reasoner','deepseek-v4-flash','deepseek-v4-pro'];
     const modelId=(cfg.model||'').toLowerCase();
-    const isVisionModel=visionKeywords.some(k=>modelId.includes(k));
+    const isVisionModel=!noVisionProvs.includes(cfg.prov) && !noVisionModels.some(m=>modelId.includes(m));
     
+    // For images: if current model doesn't support vision, use visionCfg
+    let useVisionFallback=false;
     if(hasImages && !isVisionModel){
-        const useVision=confirm(
-            '📷 当前模型 "'+cfg.model+'" 不支持图片分析。\n\n'+
-            '推荐选择支持看图的模型：\n'+
-            '· SiliconFlow → Qwen2.5 VL 72B（免费）\n'+
-            '· 通义千问 → Qwen-VL Plus\n'+
-            '· 智谱 GLM → GLM-4V Plus\n'+
-            '· OpenAI → GPT-4o\n\n'+
-            '点击"确定"打开配置面板切换模型\n'+
-            '点击"取消"仍用当前模型（可能报错）'
-        );
-        if(useVision){openMo();btn.disabled=false;btn.textContent='🚀 运行全维分析';return}
+        if(visionCfg.key){
+            useVisionFallback=true;
+        }else{
+            const goVision=confirm(
+                '📷 当前模型 "'+cfg.model+'" 不支持看图。\n\n'+
+                '请配置看图模型（二选一）：\n'+
+                '· 通义千问 Qwen-VL Plus（免费额度大，推荐）\n'+
+                '  注册: https://dashscope.console.aliyun.com/\n'+
+                '· 智谱 GLM-4V Plus\n'+
+                '  注册: https://open.bigmodel.cn/\n\n'+
+                '点击"确定"打开配置面板设置看图模型\n'+
+                '点击"取消"放弃分析'
+            );
+            if(goVision){openMo();btn.disabled=false;btn.textContent='🚀 运行全维分析';return}
+        }
     }
     
     let messages;
@@ -810,7 +852,8 @@ async function run(){
         (full)=>{
             clearInterval(ti);
             const s=((Date.now()-t0)/1000|0);
-            body.innerHTML=renderMd(full)+`<div style="text-align:right;color:var(--tx3);font-size:.72rem;margin-top:14px;padding-top:10px;border-top:1px solid var(--bd)">分析完成 · ${s}秒 · 商人之眼</div>`;
+            const provLabel=useVisionFallback?'商人之眼·'+visionCfg.model:'商人之眼';
+            body.innerHTML=renderMd(full)+`<div style="text-align:right;color:var(--tx3);font-size:.72rem;margin-top:14px;padding-top:10px;border-top:1px solid var(--bd)">分析完成 · ${s}秒 · ${provLabel}</div>`;
             body.scrollTop=body.scrollHeight;
             btn.disabled=false;btn.textContent='🔄 重新分析';
         },
@@ -818,7 +861,8 @@ async function run(){
             clearInterval(ti);
             body.innerHTML=`<div style="text-align:center;padding:30px;color:var(--rd)">${err}</div><div style="text-align:center;margin-top:14px"><button class="tool-btn" onclick="openMo()">⚙️ 配置 AI</button></div>`;
             btn.disabled=false;btn.textContent='🚀 运行全维分析';
-        }
+        },
+        useVisionFallback ? visionCfg : null
     );
     out.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
