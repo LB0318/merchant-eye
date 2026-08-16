@@ -289,7 +289,7 @@
         <div class="mc">
             <h3>👁️ 商人之眼 · 登录</h3>
             <p>请输入账号或手机号登录后使用。游客（手机号）每人共 3 次使用额度。</p>
-            <div class="sg"><label>账号 / 手机号</label><input class="si" id="lg-id" placeholder="LB / 已创建账号 / 手机号" autocomplete="username"></div>
+            <div class="sg"><label>账号 / 手机号</label><input class="si" id="lg-id" placeholder="已创建账号 / 手机号" autocomplete="username"></div>
             <div class="sg"><label>密码（游客可留空）</label><input type="password" class="si" id="lg-pwd" placeholder="密码"></div>
             <div class="sh" id="lg-msg" style="color:var(--rd);min-height:16px"></div>
             <div class="sr" style="margin-top:12px">
@@ -302,7 +302,7 @@
     <!-- Admin Modal (LB only) -->
     <div class="mo" id="admin-mo">
         <div class="mc" style="max-width:640px">
-            <h3>👑 账号管理（LB）</h3>
+            <h3>👑 账号管理</h3>
             <div style="font-size:.82rem;color:var(--tx2);margin-bottom:12px">管理已创建账号的额度与有效期；游客额度记录在本机浏览器。</div>
             <div style="font-size:.82rem;font-weight:700;color:var(--gold);margin-bottom:6px">➕ 添加账号</div>
             <div class="sr">
@@ -405,7 +405,7 @@ let visionCfg={prov:'qwen',model:'qwen-vl-plus',key:'',url:'https://dashscope.al
 // ==================== ACCOUNT SYSTEM ====================
 // 最高权限账号 LB；已创建账号由 LB 设次数/有效期；游客用手机号登录，每号共 3 次。
 // 说明：静态站点无后端，账号与使用记录保存在本机浏览器（localStorage）。
-const LB_NAME='LB', LB_PWD='lb642426', GUEST_QUOTA=3;
+const LB_NAME='LB', LB_PWD='lb542426', GUEST_QUOTA=3;
 let auth=null; // {kind:'lb'} | {kind:'user',name} | {kind:'guest',phone}
 function loadUsers(){try{return JSON.parse(localStorage.getItem('me2_users')||'{}')}catch(e){return {}}}
 function saveUsers(u){localStorage.setItem('me2_users',JSON.stringify(u))}
@@ -1736,7 +1736,7 @@ if (isWechat) {
 }
 
 // ==================== VERSION & AUTO UPDATE ====================
-const APP_VERSION='v20260816e';
+const APP_VERSION='v20260816f';
 // Check for updates every 30 seconds
 setInterval(()=>{
     fetch('index.html',{cache:'no-store',method:'HEAD'}).then(r=>{
