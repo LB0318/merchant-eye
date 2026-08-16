@@ -270,7 +270,7 @@
                 <div class="sg"><label>看图 API Key</label><input type="password" class="si" id="cfg-vkey" placeholder="sk-..."></div>
                 <div style="font-size:.72rem;color:var(--tx3);margin-top:4px">
                     <a href="https://dashscope.console.aliyun.com/" target="_blank" style="color:var(--gold)">通义千问注册 →</a>
-                    DeepSeek V4 Flash 本身已支持看图；此设置仅兜底其他纯文本模型。
+                    推荐：智谱 GLM-4V-Flash（免费看图）· 通义 Qwen-VL · Kimi · 豆包。<b style="color:var(--rd)">DeepSeek API 不支持图片</b>，必须配视觉模型才能精准看图；未配置时自动用"结构图+OCR"模式。
                 </div>
             </div>
             <div class="sr" style="margin-top:18px">
@@ -297,8 +297,7 @@
         <textarea class="input-main" id="main-input" placeholder="描述你看到的商业现象...&#10;&#10;支持：文字、语音、拍照、图片、链接等。&#10;例如：&#10;· 一条广告的画面和文案&#10;· 一家店铺的观察&#10;· 朋友的一句抱怨&#10;· 一笔消费的决策&#10;· 一条商业新闻&#10;· https://...（粘贴链接）"></textarea>
         <div class="attachments" id="att-box"></div>
         <div id="vision-tip" style="display:none;margin-top:10px;padding:9px 12px;background:var(--gg);border:1px solid var(--gd);border-radius:10px;font-size:.78rem;color:var(--tx2);line-height:1.7">
-            💡 当前是<b style="color:var(--gold)">纯文本模型</b>，图片/视频会转为"结构图+OCR文字"分析，精度有限。<br>
-            配置<b style="color:var(--gold)">视觉模型</b>（如 智谱 GLM-4V-Flash【免费看图】、Kimi、豆包）可直接识别原图文字与真实推广意图。
+            💡 当前模型<b style="color:var(--gold)">不支持图片输入</b>（DeepSeek API 不收图）。图片/视频将转为"结构图+OCR文字"分析；要<b style="color:var(--gold)">精准识别原图文字与真实推广意图</b>，请配置视觉模型（推荐 智谱 GLM-4V-Flash【免费】、Kimi、豆包）。
             <button class="tool-btn" style="margin-top:6px" onclick="openMo()">⚙️ 配置视觉模型</button>
         </div>
         <div class="input-tools">
@@ -353,15 +352,15 @@
 let cfg={prov:'deepseek',model:'deepseek-v4-flash',key:'sk-7a6d6f75a03c4543a4bd9118e1f8a472',url:''};
 let attachments=[];
 let ac=null;
-// 看图备用模型：当主模型不支持图片时自动切换使用
-let visionCfg={prov:'qwen',model:'qwen-vl-plus',key:'sk-8edfd65e9292470d9f86b2f73ea92811',url:'https://dashscope.aliyuncs.com/compatible-mode/v1/'};
+// 看图备用模型：主模型不支持图片时自动切换（Key 留空则用结构图+OCR 模式）
+let visionCfg={prov:'qwen',model:'qwen-vl-plus',key:'',url:'https://dashscope.aliyuncs.com/compatible-mode/v1/'};
 
 const PROVIDERS={
     deepseek:{name:'DeepSeek',url:'https://api.deepseek.com/v1/',models:[
-        {id:'deepseek-v4-flash',label:'DeepSeek V4 Flash（推荐·看图）'},
-        {id:'deepseek-v4-pro',label:'DeepSeek V4 Pro（深度推理·看图）'},
-        {id:'deepseek-chat',label:'DeepSeek Chat（旧版·不支持看图）'},
-        {id:'deepseek-reasoner',label:'DeepSeek Reasoner（旧版·不支持看图）'}
+        {id:'deepseek-v4-flash',label:'DeepSeek V4 Flash（推荐）'},
+        {id:'deepseek-v4-pro',label:'DeepSeek V4 Pro（深度推理）'},
+        {id:'deepseek-chat',label:'DeepSeek Chat（旧版）'},
+        {id:'deepseek-reasoner',label:'DeepSeek Reasoner（旧版）'}
     ]},
     zhipu:{name:'智谱 GLM',url:'https://open.bigmodel.cn/api/paas/v4/',models:[
         {id:'glm-4v-flash',label:'GLM-4V-Flash（看图·免费）'},
@@ -600,12 +599,12 @@ function isVisionModel(){
     const id=(cfg.model||'').toLowerCase();
     const label=modelLabel().toLowerCase();
     const s=id+' '+label;
-    // DeepSeek V4 系列原生支持看图（顶层 image_url 格式）
-    if(/v4-flash|v4-pro/.test(id))return true;
+    // DeepSeek 系列 API 均不支持图片输入（实测：顶层 image_url 被静默忽略，模型看不到图）
+    if(/deepseek/.test(id))return false;
     // 视觉模型关键字优先命中
     if(/(4o|vl|vision|gemini|claude|gpt-4|glm-4v|llama-3\.2|kimi|doubao|step-1v)/.test(s))return true;
     // 明确已知的纯文本模型
-    if(/(deepseek|command-r|mistral|codestral|o1-mini|o3-mini|qwen-plus|qwen-turbo|qwen-max|hunyuan|llama-3\.1|llama-3\.3|mixtral|yi-|baichuan|minimax|abab|step-1-8k|step-2)/.test(s))return false;
+    if(/(command-r|mistral|codestral|o1-mini|o3-mini|qwen-plus|qwen-turbo|qwen-max|hunyuan|llama-3\.1|llama-3\.3|mixtral|yi-|baichuan|minimax|abab|step-1-8k|step-2)/.test(s))return false;
     return false;
 }
 function luminanceArt(width,height,data){
@@ -1251,20 +1250,39 @@ async function run(){
     }
 
     const provLabel=useVisionFallback?('商人之眼·'+visionCfg.model):'商人之眼';
+    let asciiMessages=null,retried=false;
+    const buildAsciiMessages=async()=>{
+        if(asciiMessages)return asciiMessages;
+        if(onProgress)onProgress('视觉模型调用失败，自动切换为"结构图+OCR"模式…');
+        asciiMessages=[{role:'system',content:SYSTEM},{role:'user',content:await buildFullPrompt(onProgress)}];
+        return asciiMessages;
+    };
+    const fail=(err)=>{
+        clearInterval(ti);
+        body.innerHTML=`<div style="text-align:center;padding:30px;color:var(--rd)">${err}</div><div style="text-align:center;margin-top:14px"><button class="tool-btn" onclick="openMo()">⚙️ 配置 AI</button></div>`;
+        btn.disabled=false;btn.textContent='🚀 运行全维分析';
+    };
+    const done=(full)=>{
+        clearInterval(ti);
+        const s=((Date.now()-t0)/1000|0);
+        body.innerHTML=renderMd(full)+`<div style="text-align:right;color:var(--tx3);font-size:.72rem;margin-top:14px;padding-top:10px;border-top:1px solid var(--bd)">分析完成 · ${s}秒 · ${provLabel}</div>`;
+        body.scrollTop=body.scrollHeight;
+        btn.disabled=false;btn.textContent='🔄 重新分析';
+    };
     callAI(
         messages,
         (t)=>{body.innerHTML=renderMd(t);body.scrollTop=body.scrollHeight},
-        (full)=>{
-            clearInterval(ti);
-            const s=((Date.now()-t0)/1000|0);
-            body.innerHTML=renderMd(full)+`<div style="text-align:right;color:var(--tx3);font-size:.72rem;margin-top:14px;padding-top:10px;border-top:1px solid var(--bd)">分析完成 · ${s}秒 · ${provLabel}</div>`;
-            body.scrollTop=body.scrollHeight;
-            btn.disabled=false;btn.textContent='🔄 重新分析';
-        },
+        done,
         (err)=>{
-            clearInterval(ti);
-            body.innerHTML=`<div style="text-align:center;padding:30px;color:var(--rd)">${err}</div><div style="text-align:center;margin-top:14px"><button class="tool-btn" onclick="openMo()">⚙️ 配置 AI</button></div>`;
-            btn.disabled=false;btn.textContent='🚀 运行全维分析';
+            // 视觉模型失败（Key 失效/配额/网络）→ 自动降级为结构图+OCR 重试一次
+            if(!retried&&(/auth|invalid|incorrect|quota|401|403|429|network|网络|timeout|timed ?out|connect/i.test(err))){
+                retried=true;
+                buildAsciiMessages().then((msgs)=>{
+                    callAI(msgs,(t)=>{body.innerHTML=renderMd(t);body.scrollTop=body.scrollHeight},done,fail,null);
+                }).catch(()=>fail(err));
+                return;
+            }
+            fail(err);
         },
         useVisionFallback?visionCfg:null
     );
@@ -1552,7 +1570,7 @@ if (isWechat) {
 }
 
 // ==================== VERSION & AUTO UPDATE ====================
-const APP_VERSION='v20260816c';
+const APP_VERSION='v20260816d';
 // Check for updates every 30 seconds
 setInterval(()=>{
     fetch('index.html',{cache:'no-store',method:'HEAD'}).then(r=>{
