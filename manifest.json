@@ -1,8 +1,8 @@
-{
-  "name": "商人之眼 — AI商业分析引擎",
-  "short_name": "商人之眼",
-  "description": "输入任何商业观察，AI自动运行全套思维框架，输出深度解读与行动方案。",
-  "start_url": "/merchant-eye-toolkit.html",
+﻿{
+  "name": "鍟嗕汉涔嬬溂 鈥?AI鍟嗕笟鍒嗘瀽寮曟搸",
+  "short_name": "鍟嗕汉涔嬬溂",
+  "description": "杈撳叆浠讳綍鍟嗕笟瑙傚療锛孉I鑷姩杩愯鍏ㄥ鎬濈淮妗嗘灦锛岃緭鍑烘繁搴﹁В璇讳笌琛屽姩鏂规銆?,
+  "start_url": "index.html",
   "display": "standalone",
   "background_color": "#0a0c10",
   "theme_color": "#0a0c10",
@@ -22,3 +22,4 @@
     }
   ]
 }
+

@@ -255,27 +255,27 @@
             </div>
             <div class="sg"><label>API Key</label><input type="password" class="si" id="cfg-key" placeholder="sk-..."></div>
             <div class="sg" id="sg-url" style="display:none"><label>Base URL</label><input class="si" id="cfg-url" placeholder="https://api.example.com/v1"></div>
-            <div class="sr" style="margin-top:18px">
-                <button class="bt" id="btn-test" onclick="testConn()">测试连接</button>
-                <div><span class="sd off" id="s-dot"></span><span class="st" id="s-txt">未测试</span></div>
-            </div>
-            <!-- Vision model config -->
-            <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--bd)">
-                <div style="font-size:.85rem;font-weight:700;color:var(--gold);margin-bottom:10px">📷 看图模型（传图片时自动使用）</div>
+            <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--bd)">
+                <div style="font-size:.82rem;font-weight:700;color:var(--gold);margin-bottom:8px">📷 看图模型（主模型不支持图片时自动使用）</div>
                 <div class="sg"><label>看图服务商</label><select class="ss" id="cfg-vprov" onchange="onVProv()">
-                    <option value="qwen" selected>通义千问（推荐·免费额度大）</option>
-                    <option value="zhipu">智谱 GLM</option>
+                    <option value="qwen">通义千问（推荐·免费额度大）</option>
+                    <option value="zhipu">智谱 GLM（GLM-4V-Flash 免费）</option>
                     <option value="siliconflow">SiliconFlow（免费）</option>
                     <option value="openai">OpenAI</option>
                     <option value="google">Google</option>
                     <option value="anthropic">Anthropic</option>
+                    <option value="moonshot">Kimi（月之暗面）</option>
                 </select></div>
-                <div class="sg"><label>看图模型</label><select class="ss" id="cfg-vmodel"><option value="qwen-vl-plus">Qwen-VL Plus</option></select></div>
+                <div class="sg"><label>看图模型</label><select class="ss" id="cfg-vmodel"></select></div>
                 <div class="sg"><label>看图 API Key</label><input type="password" class="si" id="cfg-vkey" placeholder="sk-..."></div>
-                <div style="font-size:.72rem;color:var(--tx3);margin-top:6px">
+                <div style="font-size:.72rem;color:var(--tx3);margin-top:4px">
                     <a href="https://dashscope.console.aliyun.com/" target="_blank" style="color:var(--gold)">通义千问注册 →</a>
-                    文字分析仍用上方的 DeepSeek，看图自动走此模型
+                    DeepSeek V4 Flash 本身已支持看图；此设置仅兜底其他纯文本模型。
                 </div>
+            </div>
+            <div class="sr" style="margin-top:18px">
+                <button class="bt" id="btn-test" onclick="testConn()">测试连接</button>
+                <div><span class="sd off" id="s-dot"></span><span class="st" id="s-txt">未测试</span></div>
             </div>
             <div style="margin-top:20px;display:flex;gap:10px;justify-content:flex-end">
                 <button onclick="closeMo()" style="padding:9px 16px;border-radius:8px;background:transparent;color:var(--tx2);border:1px solid var(--bd);cursor:pointer;font-family:var(--fb);font-size:.82rem">取消</button>
@@ -296,13 +296,20 @@
     <div class="input-area" id="input-area">
         <textarea class="input-main" id="main-input" placeholder="描述你看到的商业现象...&#10;&#10;支持：文字、语音、拍照、图片、链接等。&#10;例如：&#10;· 一条广告的画面和文案&#10;· 一家店铺的观察&#10;· 朋友的一句抱怨&#10;· 一笔消费的决策&#10;· 一条商业新闻&#10;· https://...（粘贴链接）"></textarea>
         <div class="attachments" id="att-box"></div>
+        <div id="vision-tip" style="display:none;margin-top:10px;padding:9px 12px;background:var(--gg);border:1px solid var(--gd);border-radius:10px;font-size:.78rem;color:var(--tx2);line-height:1.7">
+            💡 当前是<b style="color:var(--gold)">纯文本模型</b>，图片/视频会转为"结构图+OCR文字"分析，精度有限。<br>
+            配置<b style="color:var(--gold)">视觉模型</b>（如 智谱 GLM-4V-Flash【免费看图】、Kimi、豆包）可直接识别原图文字与真实推广意图。
+            <button class="tool-btn" style="margin-top:6px" onclick="openMo()">⚙️ 配置视觉模型</button>
+        </div>
         <div class="input-tools">
             <button class="tool-btn voice-btn" id="voice-btn" onclick="toggleVoice()"><span id="voice-icon">🎤</span> <span id="voice-label">语音输入</span></button>
             <button class="tool-btn" onclick="openCam()">📷 拍照</button>
             <button class="tool-btn" onclick="document.getElementById('f-img').click()">🖼️ 图片</button>
             <button class="tool-btn" onclick="addLink()">🔗 链接</button>
-            <button class="tool-btn" onclick="addVideo()">🎬 视频</button>
+            <button class="tool-btn" onclick="addVideo()">🎬 视频链接</button>
+            <button class="tool-btn" onclick="document.getElementById('f-vid').click()">🎞️ 视频文件</button>
             <input type="file" id="f-img" class="hf" accept="image/*" multiple onchange="onImgUpload(event)">
+            <input type="file" id="f-vid" class="hf" accept="video/*" multiple onchange="onVideoUpload(event)">
         </div>
         <button class="go-btn" id="go-btn" onclick="run()">🚀 运行全维分析</button>
     </div>
@@ -344,31 +351,34 @@
 <script>
 // ==================== CONFIG ====================
 let cfg={prov:'deepseek',model:'deepseek-v4-flash',key:'sk-7a6d6f75a03c4543a4bd9118e1f8a472',url:''};
-// Vision fallback: when images are sent, auto-switch to this provider
-let visionCfg={prov:'qwen',model:'qwen-vl-plus',key:'sk-8edfd65e9292470d9f86b2f73ea92811',url:'https://dashscope.aliyuncs.com/compatible-mode/v1/'};
 let attachments=[];
 let ac=null;
+// 看图备用模型：当主模型不支持图片时自动切换使用
+let visionCfg={prov:'qwen',model:'qwen-vl-plus',key:'sk-8edfd65e9292470d9f86b2f73ea92811',url:'https://dashscope.aliyuncs.com/compatible-mode/v1/'};
 
 const PROVIDERS={
     deepseek:{name:'DeepSeek',url:'https://api.deepseek.com/v1/',models:[
         {id:'deepseek-v4-flash',label:'DeepSeek V4 Flash（推荐·看图）'},
         {id:'deepseek-v4-pro',label:'DeepSeek V4 Pro（深度推理·看图）'},
-        {id:'deepseek-chat',label:'DeepSeek Chat（旧版·7/24废弃·不支持看图）'},
-        {id:'deepseek-reasoner',label:'DeepSeek Reasoner（旧版·7/24废弃）'}
+        {id:'deepseek-chat',label:'DeepSeek Chat（旧版·不支持看图）'},
+        {id:'deepseek-reasoner',label:'DeepSeek Reasoner（旧版·不支持看图）'}
     ]},
     zhipu:{name:'智谱 GLM',url:'https://open.bigmodel.cn/api/paas/v4/',models:[
+        {id:'glm-4v-flash',label:'GLM-4V-Flash（看图·免费）'},
+        {id:'glm-4v-plus',label:'GLM-4V Plus（看图）'},
         {id:'glm-4-plus',label:'GLM-4 Plus'},
         {id:'glm-4-plus-0520',label:'GLM-4 Plus (0520)'},
-        {id:'glm-4-flash',label:'GLM-4 Flash（极速·免费额度）'},
-        {id:'glm-4v-plus',label:'GLM-4V Plus（看图）'}
+        {id:'glm-4-flash',label:'GLM-4 Flash（极速·免费额度）'}
     ]},
     qwen:{name:'通义千问',url:'https://dashscope.aliyuncs.com/compatible-mode/v1/',models:[
+        {id:'qwen-vl-max',label:'Qwen-VL-Max（看图·最强）'},
+        {id:'qwen-vl-plus',label:'Qwen-VL Plus（看图）'},
         {id:'qwen-plus',label:'Qwen Plus'},
         {id:'qwen-turbo',label:'Qwen Turbo（极速）'},
-        {id:'qwen-max',label:'Qwen Max'},
-        {id:'qwen-vl-plus',label:'Qwen-VL Plus（看图）'}
+        {id:'qwen-max',label:'Qwen Max'}
     ]},
     moonshot:{name:'Moonshot/Kimi',url:'https://api.moonshot.cn/v1/',models:[
+        {id:'moonshot-v1-8k-vision-preview',label:'Moonshot Vision（看图）'},
         {id:'moonshot-v1-128k',label:'Moonshot V1 128K（长上下文）'},
         {id:'moonshot-v1-8k',label:'Moonshot V1 8K'}
     ]},
@@ -386,16 +396,20 @@ const PROVIDERS={
         {id:'abab6.5s-chat',label:'abab6.5s-chat'}
     ]},
     stepfun:{name:'阶跃星辰',url:'https://api.stepfun.com/v1/',models:[
+        {id:'step-1v-32k',label:'Step-1V 32K（看图）'},
+        {id:'step-1v-8k',label:'Step-1V 8K（看图）'},
         {id:'step-2-16k',label:'Step-2 16K'},
         {id:'step-1-8k',label:'Step-1 8K'}
     ]},
     siliconflow:{name:'SiliconFlow',url:'https://api.siliconflow.cn/v1/',models:[
         {id:'deepseek-ai/DeepSeek-V3',label:'DeepSeek V3（免费）'},
         {id:'Qwen/Qwen2.5-72B-Instruct',label:'Qwen2.5 72B（免费）'},
-        {id:'THUDM/glm-4-9b-chat',label:'GLM-4 9B（免费）'},
-        {id:'Qwen/Qwen2.5-VL-72B-Instruct',label:'Qwen2.5 VL 72B（看图·免费）'}
+        {id:'THUDM/glm-4-9b-chat',label:'GLM-4 9B（免费）'}
     ]},
-    doubao:{name:'豆包',url:'https://ark.cn-beijing.volces.com/api/v3/',models:[]},
+    doubao:{name:'豆包/火山方舟',url:'https://ark.cn-beijing.volces.com/api/v3/',models:[
+        {id:'doubao-seed-1-6-vision-250815',label:'豆包 Seed 1.6 Vision（看图）'},
+        {id:'doubao-1.5-vision-pro-32k-250115',label:'豆包 1.5 Vision Pro（看图）'}
+    ]},
     openai:{name:'OpenAI',url:'https://api.openai.com/v1/',models:[
         {id:'gpt-4o',label:'GPT-4o（推荐·看图）'},
         {id:'gpt-4o-mini',label:'GPT-4o Mini（便宜·看图）'},
@@ -463,12 +477,12 @@ function onVProv(){
     const p=$('cfg-vprov').value,sel=$('cfg-vmodel'),prov=PROVIDERS[p];
     sel.innerHTML='';
     if(prov){
-        // Filter to vision-capable models only
         const vModels=prov.models.filter(m=>m.label.includes('看图')||m.label.includes('VL')||m.label.includes('V')||m.label.includes('4o')||m.label.includes('gemini')||m.label.includes('claude'));
         const list=vModels.length?vModels:prov.models;
         list.forEach(m=>{const o=document.createElement('option');o.value=m.id;o.textContent=m.label;sel.appendChild(o)});
     }
 }
+function closeMo(){$('modal').classList.remove('open')}
 function onProv(){
     const p=$('cfg-prov').value,sel=$('cfg-model-sel'),inp=$('cfg-model'),u=$('sg-url'),hint=$('model-hint');
     const prov=PROVIDERS[p];
@@ -484,7 +498,7 @@ function onProv(){
         if(!sel.value&&prov.models[0]){sel.value=prov.models[0].id;inp.value=prov.models[0].id}
         inp.value=sel.value;
         const hasImg=prov.models.some(m=>m.label.includes('看图')||m.label.includes('V')||m.label.includes('VL')||m.id.includes('4o'));
-        hint.textContent=hasImg?'提示：带「看图」标签的模型支持图片分析':'选择或手动输入模型名称';
+        hint.textContent=hasImg?'提示：带「看图」标签的模型直接支持图片分析；纯文本模型（如 DeepSeek）也会自动把图片/视频转成结构图分析':'提示：图片/视频会自动转成 ASCII 结构图供任意模型分析（带「看图」标签的模型可直接分析原图）';
     }else{
         sel.style.display='none';
         hint.textContent=prov?prov.note||'手动输入模型名称':'选择或手动输入模型名称';
@@ -523,15 +537,429 @@ function addVideo(){
     if(url&&url.trim()) attachments.push({type:'video',data:url.trim(),name:url.trim()});
     renderAtt();
 }
+function onVideoUpload(e){
+    const files=e.target.files;
+    for(const f of files){
+        const reader=new FileReader();
+        reader.onload=()=>{
+            const att={type:'video',data:reader.result,name:f.name};
+            // Generate a poster frame for the thumbnail
+            videoPoster(reader.result).then(thumb=>{att.thumb=thumb;renderAtt()}).catch(()=>renderAtt());
+            attachments.push(att);
+            renderAtt();
+        };
+        reader.readAsDataURL(f);
+    }
+    e.target.value='';
+}
+function videoPoster(dataUrl){
+    return new Promise((resolve,reject)=>{
+        const v=document.createElement('video');
+        v.preload='auto';v.muted=true;v.playsInline=true;
+        const t=setTimeout(()=>{try{v.removeAttribute('src')}catch(e){};reject(new Error('timeout'))},8000);
+        v.onloadeddata=()=>{
+            try{
+                const c=document.createElement('canvas');
+                c.width=160;c.height=Math.round(160*v.videoHeight/(v.videoWidth||1)||90);
+                const g=c.getContext('2d');g.drawImage(v,0,0,c.width,c.height);
+                clearTimeout(t);resolve(c.toDataURL('image/jpeg',0.7));
+            }catch(err){clearTimeout(t);reject(err)}
+        };
+        v.onerror=()=>{clearTimeout(t);reject(new Error('decode error'))};
+        v.src=dataUrl;
+    });
+}
 function rmAtt(i){attachments.splice(i,1);renderAtt()}
 function renderAtt(){
     const box=$('att-box');
     box.innerHTML=attachments.map((a,i)=>{
         if(a.type==='image') return `<div class="att"><img src="${a.data}"><span>${a.name}</span><span class="rm" onclick="rmAtt(${i})">✕</span></div>`;
         if(a.type==='link') return `<div class="att"><span>🔗</span><span class="link" title="${a.data}">${a.data}</span><span class="rm" onclick="rmAtt(${i})">✕</span></div>`;
-        if(a.type==='video') return `<div class="att"><span>🎬</span><span class="link" title="${a.data}">${a.data}</span><span class="rm" onclick="rmAtt(${i})">✕</span></div>`;
+        if(a.type==='video'){
+            const thumb=a.thumb?`<img src="${a.thumb}">`:`<span>🎬</span>`;
+            const isLocal=a.data&&a.data.startsWith('data:');
+            return `<div class="att">${thumb}<span>${a.name}${isLocal?'':' (链接)'}</span><span class="rm" onclick="rmAtt(${i})">✕</span></div>`;
+        }
+        if(a.type==='audio') return `<div class="att"><span>🎙️</span><span>${a.name}</span><span class="rm" onclick="rmAtt(${i})">✕</span></div>`;
     }).join('');
+    const tip=$('vision-tip');
+    if(tip)tip.style.display=(attachments.length>0&&!isVisionModel())?'block':'none';
 }
+
+// ==================== MEDIA VISION HELPERS ====================
+// DeepSeek 等纯文本模型无法接收图片，这里把图片/视频在浏览器端转成
+// ASCII 结构图文本嵌入提示词，让任何模型都能"看懂"画面内容。
+const ASCII_RAMP='@%#*+=-:. ';
+function modelLabel(){
+    const p=PROVIDERS[cfg.prov];
+    if(!p||!p.models)return cfg.model||'';
+    const m=p.models.find(x=>x.id===cfg.model);
+    return m?m.label:'';
+}
+function isVisionModel(){
+    const id=(cfg.model||'').toLowerCase();
+    const label=modelLabel().toLowerCase();
+    const s=id+' '+label;
+    // DeepSeek V4 系列原生支持看图（顶层 image_url 格式）
+    if(/v4-flash|v4-pro/.test(id))return true;
+    // 视觉模型关键字优先命中
+    if(/(4o|vl|vision|gemini|claude|gpt-4|glm-4v|llama-3\.2|kimi|doubao|step-1v)/.test(s))return true;
+    // 明确已知的纯文本模型
+    if(/(deepseek|command-r|mistral|codestral|o1-mini|o3-mini|qwen-plus|qwen-turbo|qwen-max|hunyuan|llama-3\.1|llama-3\.3|mixtral|yi-|baichuan|minimax|abab|step-1-8k|step-2)/.test(s))return false;
+    return false;
+}
+function luminanceArt(width,height,data){
+    const lines=[];
+    for(let y=0;y<height;y++){
+        let line='';
+        for(let x=0;x<width;x++){
+            const i=(y*width+x)*4;
+            const l=0.299*data[i]+0.587*data[i+1]+0.114*data[i+2];
+            line+=ASCII_RAMP[Math.min(ASCII_RAMP.length-1,Math.floor((l/256)*ASCII_RAMP.length))];
+        }
+        lines.push(line);
+    }
+    return lines.join('\n');
+}
+function sampleColors(data,max=6){
+    const colors=[];
+    for(let i=0;i+2<data.length&&colors.length<max;i+=4){
+        const hex='#'+[data[i],data[i+1],data[i+2]].map(v=>v.toString(16).padStart(2,'0')).join('');
+        if(!colors.includes(hex))colors.push(hex);
+    }
+    return colors.join(' ');
+}
+function drawToCanvas(source,maxW,maxH){
+    const w=source.videoWidth!==undefined?source.videoWidth:source.naturalWidth;
+    const h=source.videoHeight!==undefined?source.videoHeight:source.naturalHeight;
+    const scale=Math.min(1,maxW/w,maxH/h);
+    const cw=Math.max(1,Math.round((w||maxW)*scale));
+    const ch=Math.max(1,Math.round((h||maxH)*scale));
+    const canvas=document.createElement('canvas');
+    canvas.width=cw;canvas.height=ch;
+    const g=canvas.getContext('2d');
+    if(g===null)return null;
+    g.drawImage(source,0,0,cw,ch);
+    return g.getImageData(0,0,cw,ch);
+}
+async function dataUrlToImageAscii(dataUrl,name){
+    const img=await new Promise((resolve,reject)=>{
+        const el=new Image();
+        el.onload=()=>resolve(el);
+        el.onerror=()=>reject(new Error('图片解码失败'));
+        el.src=dataUrl;
+    });
+    const frame=drawToCanvas(img,56,32);
+    if(frame===null)throw new Error('canvas 不可用');
+    return `[图片: ${name} ${img.naturalWidth}x${img.naturalHeight}]\n主色采样: ${sampleColors(frame.data)}\n结构图(${frame.width}列x${frame.height}行, 越亮字符越浅):\n${luminanceArt(frame.width,frame.height,frame.data)}`;
+}
+async function dataUrlToVideoAscii(dataUrl,name,count=4){
+    const video=await new Promise((resolve,reject)=>{
+        const el=document.createElement('video');
+        el.preload='auto';el.muted=true;el.playsInline=true;
+        el.onloadedmetadata=()=>resolve(el);
+        el.onerror=()=>reject(new Error('视频解码失败'));
+        el.src=dataUrl;
+    });
+    const duration=video.duration;
+    const usable=Number.isFinite(duration)&&duration>0;
+    const blocks=[];
+    for(let i=0;i<count;i++){
+        const at=usable?(duration*(i+0.5))/count:0;
+        await new Promise((resolve)=>{
+            const onSeeked=()=>{video.removeEventListener('seeked',onSeeked);resolve()};
+            video.addEventListener('seeked',onSeeked);
+            video.currentTime=at;
+            setTimeout(()=>{video.removeEventListener('seeked',onSeeked);resolve()},4000);
+        });
+        const frame=drawToCanvas(video,48,27);
+        if(frame===null)continue;
+        blocks.push(`--- 帧 ${i+1}/${count}${usable?` (t≈${at.toFixed(1)}s)`:''} ---\n${luminanceArt(frame.width,frame.height,frame.data)}`);
+    }
+    if(blocks.length===0)throw new Error('未能抽取到画面帧');
+    return `[视频: ${name}] (已抽取 ${blocks.length} 个关键帧)\n${blocks.join('\n\n')}`;
+}
+// ---------- 识别优先级：Windows 本机 OCR（电脑）→ 在线 tesseract（手机） ----------
+let _winOcr=null;
+async function winOcrAvailable(){
+    if(_winOcr!==null)return _winOcr;
+    _winOcr=(async()=>{
+        try{
+            const r=await fetch('http://127.0.0.1:8899/health',{signal:AbortSignal.timeout(1200)});
+            if(!r.ok)return false;
+            const j=await r.json().catch(()=>null);
+            return !!(j&&j.ok);
+        }catch(e){return false}
+    })();
+    return _winOcr;
+}
+async function winOcrImage(dataUrl){
+    try{
+        const r=await fetch('http://127.0.0.1:8899/ocr',{
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({image:dataUrl}),
+            signal:AbortSignal.timeout(60000)
+        });
+        if(!r.ok)return null;
+        return await r.json();
+    }catch(e){return null}
+}
+function formatOcrText(r){
+    if(!r||!r.ok||!r.text)return '';
+    if(r.lines&&r.lines.length){
+        return r.lines.map(l=>l.t+(l.w&&l.h?`（位置 ${l.x},${l.y}，${l.w}×${l.h}）`:'')).join('\n');
+    }
+    return r.text;
+}
+async function recognizeImageText(dataUrl){
+    // 1) Windows 本机 OCR（电脑上几乎必成功，完全本地）
+    try{
+        if(await winOcrAvailable()){
+            const r=await winOcrImage(dataUrl);
+            const t=formatOcrText(r);
+            if(t)return {text:t,src:'本机OCR'};
+        }
+    }catch(e){}
+    // 2) 在线 tesseract（手机/兜底）
+    try{
+        const t=await ocrImage(dataUrl);
+        if(t)return {text:t,src:'在线OCR'};
+    }catch(e){}
+    return null;
+}
+
+// 抽取视频关键帧为图片 dataURL（供视觉模型直接识别画面/文字）
+async function videoFramesDataUrls(dataUrl,count=4){
+    const video=await new Promise((resolve,reject)=>{
+        const el=document.createElement('video');
+        el.preload='auto';el.muted=true;el.playsInline=true;
+        el.onloadedmetadata=()=>resolve(el);
+        el.onerror=()=>reject(new Error('视频解码失败'));
+        el.src=dataUrl;
+    });
+    const duration=video.duration;
+    const usable=Number.isFinite(duration)&&duration>0;
+    const frames=[];
+    for(let i=0;i<count;i++){
+        const at=usable?(duration*(i+0.5))/count:0;
+        await new Promise((resolve)=>{
+            const onSeeked=()=>{video.removeEventListener('seeked',onSeeked);resolve()};
+            video.addEventListener('seeked',onSeeked);
+            video.currentTime=at;
+            setTimeout(()=>{video.removeEventListener('seeked',onSeeked);resolve()},4000);
+        });
+        const w=video.videoWidth||640,h=video.videoHeight||360;
+        const scale=Math.min(1,800/w);
+        const c=document.createElement('canvas');
+        c.width=Math.round(w*scale);c.height=Math.round(h*scale);
+        const g=c.getContext('2d');
+        if(g===null)continue;
+        g.drawImage(video,0,0,c.width,c.height);
+        frames.push({url:c.toDataURL('image/jpeg',0.8),at:usable?at.toFixed(1):''});
+    }
+    return frames;
+}
+
+// OCR 前把超大图压到 ≤2000px 宽，兼顾速度与识别精度
+async function prepareOcrSrc(dataUrl){
+    try{
+        const img=await new Promise((res,rej)=>{const el=new Image();el.onload=()=>res(el);el.onerror=()=>rej(new Error('decode'));el.src=dataUrl});
+        const maxW=2000;
+        if(!img.naturalWidth||img.naturalWidth<=maxW)return dataUrl;
+        const c=document.createElement('canvas');
+        const scale=maxW/img.naturalWidth;
+        c.width=maxW;c.height=Math.round(img.naturalHeight*scale);
+        const g=c.getContext('2d');
+        if(g===null)return dataUrl;
+        g.drawImage(img,0,0,c.width,c.height);
+        return c.toDataURL('image/jpeg',0.92);
+    }catch(e){return dataUrl}
+}
+
+// 把附件转成可嵌入提示词的文本描述（图片在视觉模型下跳过，由 image_url 发送）
+async function buildMediaText(onProgress){
+    const vision=isVisionModel();
+    const parts=[];
+    for(const a of attachments){
+        if(a.type==='image'){
+            if(vision)continue;
+            if(onProgress)onProgress('正在识别图片内容与文字: '+a.name);
+            try{
+                const ascii=await dataUrlToImageAscii(a.data,a.name);
+                let r=null;
+                try{r=await recognizeImageText(await prepareOcrSrc(a.data));}catch(e){}
+                parts.push(ascii+(r?`\n\n【图片文字识别（${r.src}）】\n${r.text.slice(0,2000)}`:'\n\n【图片文字识别（OCR）】\n（未能识别到文字；如需精准识别图片文字与推广意图，建议配置视觉模型，如智谱 GLM-4V-Flash（免费看图））'));
+            }catch(e){parts.push('[图片无法解析: '+a.name+']');}
+        }else if(a.type==='video'){
+            if(a.data&&a.data.startsWith('data:')){
+                try{
+                    if(onProgress)onProgress('正在抽取视频帧并识别文字: '+a.name);
+                    const ascii=await dataUrlToVideoAscii(a.data,a.name);
+                    let r=null;
+                    try{r=await ocrVideoFrames(a.data,2);}catch(e){}
+                    parts.push(ascii+(r?`\n\n【视频帧文字识别（${r.src}）】\n${r.text.slice(0,2000)}`:'\n\n【视频帧文字识别（OCR）】\n（未能识别到文字；如需精准识别，建议配置视觉模型）'));
+                }catch(e){parts.push('[视频文件无法解析: '+a.name+' — 请基于文件名做合理推断]');}
+            }else{
+                parts.push('[视频链接: '+a.data+' — 请基于视频标题/描述做合理推断（无法直接访问视频画面）]');
+            }
+        }else if(a.type==='link'){
+            parts.push('[网页链接: '+a.data+' — 请基于链接内容分析（如无法访问，请基于URL和描述做合理推断）]');
+        }else if(a.type==='audio'){
+            parts.push('[录音附件: '+a.name+'（本工具无法直接转录，请基于文件名做合理推断或忽略）]');
+        }
+    }
+    return parts.join('\n\n');
+}
+
+// 抽取视频关键帧做 OCR（每帧独立识别，控制数量以保证速度）
+async function ocrVideoFrames(dataUrl,count=2){
+    const video=await new Promise((resolve,reject)=>{
+        const el=document.createElement('video');
+        el.preload='auto';el.muted=true;el.playsInline=true;
+        el.onloadedmetadata=()=>resolve(el);
+        el.onerror=()=>reject(new Error('视频解码失败'));
+        el.src=dataUrl;
+    });
+    const duration=video.duration;
+    const usable=Number.isFinite(duration)&&duration>0;
+    const texts=[];
+    for(let i=0;i<count;i++){
+        const at=usable?(duration*(i+0.5))/count:0;
+        await new Promise((resolve)=>{
+            const onSeeked=()=>{video.removeEventListener('seeked',onSeeked);resolve()};
+            video.addEventListener('seeked',onSeeked);
+            video.currentTime=at;
+            setTimeout(()=>{video.removeEventListener('seeked',onSeeked);resolve()},4000);
+        });
+        const w=video.videoWidth||640,h=video.videoHeight||360;
+        const scale=Math.min(1,1600/w);
+        const c=document.createElement('canvas');
+        c.width=Math.round(w*scale);c.height=Math.round(h*scale);
+        const g=c.getContext('2d');
+        if(g===null)continue;
+        g.drawImage(video,0,0,c.width,c.height);
+        const r=await recognizeImageText(c.toDataURL('image/jpeg',0.9));
+        if(r)texts.push(`[帧${i+1}${usable?` t≈${at.toFixed(1)}s`:''}] ${r.text}`);
+    }
+    if(!texts.length)return null;
+    return {text:texts.join('\n'),src:'视频帧OCR'};
+}
+
+// ==================== OCR (TEXT EXTRACTION) ====================
+// 图片/视频里的文字是理解"真实意图"的关键。运行时从多个 CDN 尝试加载
+// tesseract.js（含中文语言包），成功后逐图 OCR；全部失败则优雅降级为
+// 纯结构图模式，并在提示词中注明"文字未能识别"。
+let _ocrReady=null;
+const OCR_CDN_BASES=[
+    'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/',
+    'https://fastly.jsdelivr.net/npm/tesseract.js@5.1.1/dist/',
+    'https://gcore.jsdelivr.net/npm/tesseract.js@5.1.1/dist/',
+    'https://testingcf.jsdelivr.net/npm/tesseract.js@5.1.1/dist/',
+    'https://unpkg.com/tesseract.js@5.1.1/dist/',
+    'https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.1.1/',
+    'https://cdn.bootcdn.net/ajax/libs/tesseract.js/5.1.1/',
+    'https://cdn.staticfile.org/tesseract.js/5.1.1/'
+];
+const OCR_LANG_URLS=[
+    'https://cdn.jsdelivr.net/npm/@tesseract.js-data/chi_sim/4.0.0_fast/',
+    'https://fastly.jsdelivr.net/npm/@tesseract.js-data/chi_sim/4.0.0_fast/',
+    'https://gcore.jsdelivr.net/npm/@tesseract.js-data/chi_sim/4.0.0_fast/',
+    'https://testingcf.jsdelivr.net/npm/@tesseract.js-data/chi_sim/4.0.0_fast/',
+    'https://unpkg.com/@tesseract.js-data/chi_sim@4.0.0_fast/',
+    'https://cdn.jsdelivr.net/npm/@tesseract.js-data/chi_sim/4.0.0_best_int/',
+    'https://fastly.jsdelivr.net/npm/@tesseract.js-data/chi_sim/4.0.0_best_int/',
+    'https://gcore.jsdelivr.net/npm/@tesseract.js-data/chi_sim/4.0.0_best_int/',
+    'https://unpkg.com/@tesseract.js-data/chi_sim@4.0.0_best_int/'
+];
+function loadScript(url){
+    return new Promise((res,rej)=>{
+        const s=document.createElement('script');
+        s.src=url;s.onload=()=>res();s.onerror=()=>rej(new Error('load failed: '+url));
+        document.head.appendChild(s);
+    });
+}
+async function ensureOcr(){
+    if(_ocrReady!==null)return _ocrReady;
+    _ocrReady=(async()=>{
+        if(window.Tesseract)return window.Tesseract;
+        for(const base of OCR_CDN_BASES){
+            try{
+                await loadScript(base+'tesseract.min.js');
+                if(window.Tesseract){
+                    window.__OCR_BASE__=base;
+                    return window.Tesseract;
+                }
+            }catch(e){}
+        }
+        return null;
+    })();
+    return _ocrReady;
+}
+async function ocrImage(dataUrl,progress){
+    const T=await ensureOcr();
+    if(!T)return '';
+    let worker=null;
+    try{
+        const base=window.__OCR_BASE__||OCR_CDN_BASES[0];
+        // 语言包路径逐个尝试（不同 CDN 可达性不同）
+        for(const langPath of OCR_LANG_URLS){
+            try{
+                worker=await T.createWorker('chi_sim+eng',1,{
+                    workerPath:base+'worker.min.js',
+                    corePath:base+'tesseract-core.wasm.js',
+                    langPath:langPath,
+                    workerBlobURL:true,
+                    gzip:true,
+                    cachePath:'IndexedDB',
+                    logger:m=>{if(progress&&m.status==='recognizing text')progress(Math.round((m.progress||0)*100))}
+                });
+                break;
+            }catch(e){
+                if(worker){try{await worker.terminate()}catch(_){}}worker=null;
+            }
+        }
+        if(!worker)return '';
+        const {data}=await worker.recognize(dataUrl);
+        return (data&&data.text||'').trim();
+    }catch(e){
+        console.warn('OCR failed:',e);
+        return '';
+    }finally{
+        if(worker){try{await worker.terminate()}catch(e){}}
+    }
+}
+
+// ==================== MEDIA INTERPRETATION SKILL ====================
+// 媒体解读技能：强制从"画面描述"推进到"真实意图"，避免停留在风格/配色层面。
+const MEDIA_SKILL_SYSTEM=`## 媒体解读技能（当用户附带图片/视频时必须执行）
+
+用户附带了图片或视频。你看到的是"画面结构图 + 颜色 + OCR 识别的文字"，而不是原图。请完成四层解读，**绝不能只描述风格、配色、版式就结束**：
+
+### 第一层：事实转录（只看不猜）
+1. 逐条引用 OCR 识别出的文字（含标点；若有明显错别字用括号标注）
+2. 画面主体：出现的人/物/场景/图标/品牌元素分别是什么
+3. 布局与风格（一句话即可，不展开）
+
+### 第二层：意图拆解（广告的"真话"）
+对画面中的每条文案和视觉元素逐一回答：
+- 卖什么：真正推广的产品/服务/账号/课程是什么（画面最显眼的字 ≠ 真正的商品，注意区分）
+- 对谁说：目标人群（性别/年龄/圈层/使用场景），从措辞和画面人物反推
+- 主张与钩子：核心卖点、承诺、悬念、恐吓/威胁、稀缺、从众等
+- 转化设计：价格锚点、促销话术、行动号召（加微信/下单/私信/下载）、信任背书（销量/明星/资质/假一赔十）
+
+### 第三层：真实意图判断（最关键，必须输出）
+- 这条内容最终想让目标用户做的**转化动作链**是什么（看到→相信→行动）
+- 表面卖 X、实际推 Y 的情况（如：低价课钩子带高价课、卖教程实为私域引流、投广告为测品/养号/清库存）
+- 文案与画面是否夸大或矛盾（标注可疑点）
+- 这条生意里谁在赚什么钱（流量方/供应链/平台/卖家各自的收益结构）
+
+### 第四层：可迁移洞察
+- 这套打法可复用到什么场景
+- 如果是你接手这条生意，3 个具体的优化动作
+- 值得持续追踪的信号/指标
+
+严格按以上四层输出，Markdown 格式，每层都有具体依据（引用 OCR 原文或结构图特征），不要泛泛而谈。`;
 
 // ==================== BUILD MESSAGE ====================
 function buildMessages(){
@@ -652,46 +1080,34 @@ const SYSTEM_PROMPT_FULL=`## 输入
 - 如果你是**投资者**，这告诉你什么？
 - 如果你是**消费者**，这如何改变你的决策？`;
 
-function buildFullPrompt(){
+async function buildFullPrompt(onProgress){
     const text=$('main-input').value.trim();
-    const attDesc=attachments.map(a=>{
-        if(a.type==='image') return '[附带图片: '+a.name+' — 请分析图片中的商业元素]';
-        if(a.type==='link') return '[附带链接: '+a.data+' — 请基于链接内容分析（如果无法访问，请基于URL和描述做合理推断）]';
-        if(a.type==='video') return '[附带视频链接: '+a.data+' — 请基于视频标题/描述分析（如果无法访问，请基于描述做合理推断）]';
-    }).join('\n');
-
-    return SYSTEM_PROMPT_FULL+'\n\n---\n\n以下是用户提供的输入内容：\n\n'+text+(text&&attachments.length?'\n\n':'' )+attDesc;
+    const media=await buildMediaText(onProgress);
+    return SYSTEM_PROMPT_FULL+'\n\n---\n\n以下是用户提供的输入内容：\n\n'+text+(text&&media?'\n\n':'')+media;
 }
 
 // ==================== AI CALL ====================
 async function callAI(messages,onChunk,onDone,onErr,overrideProv){
-    if(!cfg.key && !overrideProv){onErr('请先配置 AI API Key（右上角）');return}
+    const activeProv=overrideProv||{prov:cfg.prov,model:cfg.model,key:cfg.key,url:cfg.url};
+    const activeKey=activeProv.key||cfg.key;
+    const activeUrl=activeProv.url||(PROVIDERS[activeProv.prov]?.url||'');
+    if(!activeKey){onErr('请先配置 AI API Key（右上角）');return}
     ac=new AbortController();
-
-    // Determine which config to use
-    const activeProv = overrideProv || {prov:cfg.prov, model:cfg.model, key:cfg.key, url:cfg.url};
-    const activeKey = activeProv.key || cfg.key;
-    const activeUrl = activeProv.url || (PROVIDERS[activeProv.prov]?.url || '');
 
     // Check if we have images - if so, need vision model
     const hasImages=attachments.some(a=>a.type==='image');
-    // Detect DeepSeek V4 for special handling
-    const isDeepSeekV4=(activeProv.model||'').includes('v4-flash')||(activeProv.model||'').includes('v4-pro');
+    const isDeepSeekV4=!overrideProv&&(/v4-flash|v4-pro/.test(cfg.model||''));
 
     // Build request body
     const body={
         model:activeProv.model,
         messages:messages,
         stream:true,
-        max_tokens:8000
+        max_tokens:8000,
+        temperature:0.7
     };
-    // DeepSeek V4: disable thinking mode for direct output
-    if(isDeepSeekV4){
-        body.thinking={type:'disabled'};
-        body.temperature=0.7;
-    }else{
-        body.temperature=0.7;
-    }
+    // DeepSeek V4: 关闭思考模式以获得直接输出
+    if(isDeepSeekV4)body.thinking={type:'disabled'};
 
     try{
         const r=await fetch((activeUrl||baseUrl())+'chat/completions',{
@@ -705,7 +1121,7 @@ async function callAI(messages,onChunk,onDone,onErr,overrideProv){
             let errMsg=e.error?.message||r.status+'';
             // If vision error with non-vision model, suggest model change
             if(hasImages && (errMsg.includes('vision')||errMsg.includes('image')||errMsg.includes('image_url'))){
-                errMsg+='\n\n💡 当前模型不支持图片，请点击右上角"配置 AI"切换到支持看图的模型（如 Qwen VL、GPT-4o 等）。';
+                errMsg+='\n\n💡 提示：该模型实际不支持直接发送图片。商人之眼已内置"图片转结构图+OCR"模式与看图备用模型（配置面板可见）；也可换用 gpt-4o、claude、gemini、qwen-vl、glm-4v-flash（免费）等视觉模型。';
             }
             onErr('API 错误: '+errMsg);return;
         }
@@ -763,96 +1179,84 @@ async function run(){
 
     const out=$('output'),body=$('out-body'),btn=$('go-btn');
     out.classList.add('show');
-    body.innerHTML='<div class="ld"><div class="ld-d"><span></span><span></span><span></span></div><div><div>AI 正在分析中...</div><div class="ld-t" id="tmr">0秒</div></div></div>';
+    body.innerHTML='<div class="ld"><div class="ld-d"><span></span><span></span><span></span></div><div><div>AI 正在分析中...</div><div class="ld-t" id="tmr">0秒</div><div class="ld-t" id="medstat" style="color:var(--gold)"></div></div></div>';
     btn.disabled=true;btn.textContent='⏳ 分析中...';
 
     const t0=Date.now();
     const ti=setInterval(()=>{const el=$('tmr');if(el)el.textContent=((Date.now()-t0)/1000|0)+'秒'},1000);
+    const onProgress=(m)=>{const el=$('medstat');if(el)el.textContent=m};
 
-    // Decide: use vision API or text API
     const hasImages=attachments.some(a=>a.type==='image');
-    
-    // Check if current model supports vision
-    // DeepSeek API does NOT support vision (only web app does)
-    const noVisionProvs=['deepseek','moonshot','yi','baichuan','minimax','stepfun','cohere'];
-    const noVisionModels=['deepseek-chat','deepseek-reasoner','deepseek-v4-flash','deepseek-v4-pro'];
-    const modelId=(cfg.model||'').toLowerCase();
-    const isVisionModel=!noVisionProvs.includes(cfg.prov) && !noVisionModels.some(m=>modelId.includes(m));
-    
-    // For images: if current model doesn't support vision, use visionCfg
-    let useVisionFallback=false;
-    if(hasImages && !isVisionModel){
-        if(visionCfg.key){
-            useVisionFallback=true;
-        }else{
-            const goVision=confirm(
-                '📷 当前模型 "'+cfg.model+'" 不支持看图。\n\n'+
-                '请配置看图模型（二选一）：\n'+
-                '· 通义千问 Qwen-VL Plus（免费额度大，推荐）\n'+
-                '  注册: https://dashscope.console.aliyun.com/\n'+
-                '· 智谱 GLM-4V Plus\n'+
-                '  注册: https://open.bigmodel.cn/\n\n'+
-                '点击"确定"打开配置面板设置看图模型\n'+
-                '点击"取消"放弃分析'
-            );
-            if(goVision){openMo();btn.disabled=false;btn.textContent='🚀 运行全维分析';return}
-        }
-    }
-    
-    let messages;
-    const isDeepSeekV4=(cfg.model||'').includes('v4-flash')||(cfg.model||'').includes('v4-pro');
+    const hasVideoFiles=attachments.some(a=>a.type==='video'&&a.data&&a.data.startsWith('data:'));
+    const hasMedia=attachments.length>0;
 
-    if(hasImages){
-        // When images are present, only send user's actual text + system prompt (no image text placeholders)
-        const text=$('main-input').value.trim();
-        // Keep non-image attachment descriptions (links, videos)
+    // 视觉能力判定：主模型支持 或 自动切到看图备用模型
+    let useVisionFallback=false;
+    if((hasImages||hasVideoFiles)&&!isVisionModel()&&visionCfg.key)useVisionFallback=true;
+    const vision=isVisionModel()||useVisionFallback;
+    const isDeepSeekV4=!useVisionFallback&&(/v4-flash|v4-pro/.test(cfg.model||''));
+
+    const SYSTEM='你是一位融合广告心理学、商业模式诊断、用户思维、财务分析和信息判断的顶级商业分析师——"商人之眼"。请按照用户要求的框架进行深度分析。逐项展开，每项都有"分析过程→结论"。用具体数字和场景论证，给出可直接行动的建议。用Markdown格式输出。'+(hasMedia?'\n\n'+MEDIA_SKILL_SYSTEM:'');
+    let messages;
+
+    if((hasImages||hasVideoFiles)&&vision){
+        // ---- 原生视觉：图片直传 + 视频抽帧直传（视觉模型自己读文字/画面，最精准） ----
+        if(onProgress)onProgress('正在准备图片/视频帧…');
         const nonImgDesc=attachments.filter(a=>a.type!=='image').map(a=>{
             if(a.type==='link') return '[附带链接: '+a.data+']';
-            if(a.type==='video') return '[附带视频: '+a.data+']';
-            if(a.type==='audio') return '[附带录音: 待AI转录分析]';
+            if(a.type==='video'&&!(a.data&&a.data.startsWith('data:'))) return '[附带视频链接: '+a.data+']';
+            if(a.type==='audio') return '[附带录音: '+a.name+'（请基于文件名做合理推断）]';
             return '';
         }).filter(Boolean).join('\n');
-        const userText=(text||'请分析图片中的商业元素')+(nonImgDesc?'\n\n'+nonImgDesc:'');
-        const fullPrompt=SYSTEM_PROMPT_FULL+'\n\n---\n\n以下是用户提供的输入内容：\n\n'+userText;
-        
-        if(isDeepSeekV4){
-            // DeepSeek V4 uses top-level image_url field (not OpenAI content array format)
-            const imgs=attachments.filter(a=>a.type==='image').map(a=>a.data);
-            const userMsg={role:'user',content:fullPrompt};
-            if(imgs.length===1){
-                userMsg.image_url={url:imgs[0]};
-            }else if(imgs.length>1){
-                userMsg.image_url=imgs.map(u=>({url:u}));
+        let userText=(text||'请分析图片/视频中的商业元素与真实推广意图，逐条引用画面中的文字')+(nonImgDesc?'\n\n'+nonImgDesc:'');
+        const imgList=[];
+        attachments.filter(a=>a.type==='image').forEach(a=>imgList.push(a.data));
+        if(hasVideoFiles){
+            const v=attachments.find(a=>a.type==='video'&&a.data&&a.data.startsWith('data:'));
+            if(v){
+                try{
+                    if(onProgress)onProgress('正在抽取视频关键帧…');
+                    const frames=await videoFramesDataUrls(v.data,4);
+                    frames.forEach(f=>imgList.push(f.url));
+                    userText+='\n\n[已附带视频 '+v.name+'，以上为按时间抽取的 '+frames.length+' 个关键帧，请综合帧间信息判断真实意图]';
+                }catch(e){
+                    userText+='\n\n[视频帧抽取失败: '+v.name+' — 请基于文件名做合理推断]';
+                }
             }
-            messages=[
-                {role:'system',content:'你是一位融合广告心理学、商业模式诊断、用户思维、财务分析和信息判断的顶级商业分析师——"商人之眼"。请按照用户要求的框架进行深度分析。逐项展开，每项都有"分析过程→结论"。用具体数字和场景论证，给出可直接行动的建议。用Markdown格式输出。'},
-                userMsg
-            ];
-        }else{
-            // OpenAI compatible format (GPT-4o, Qwen VL, etc.)
-            const userContent=[{type:'text',text:fullPrompt}];
-            attachments.filter(a=>a.type==='image').forEach(a=>{
-                userContent.push({type:'image_url',image_url:{url:a.data}});
-            });
-            messages=[
-                {role:'system',content:'你是一位融合广告心理学、商业模式诊断、用户思维、财务分析和信息判断的顶级商业分析师——"商人之眼"。请按照用户要求的框架进行深度分析。逐项展开，每项都有"分析过程→结论"。用具体数字和场景论证，给出可直接行动的建议。用Markdown格式输出。'},
-                {role:'user',content:userContent}
-            ];
         }
+        const fullPrompt=SYSTEM_PROMPT_FULL+'\n\n---\n\n以下是用户提供的输入内容：\n\n'+userText;
+        if(isDeepSeekV4){
+            // DeepSeek V4：顶层 image_url 格式（单图对象 / 多图数组）
+            const userMsg={role:'user',content:fullPrompt};
+            if(imgList.length===1)userMsg.image_url={url:imgList[0]};
+            else if(imgList.length>1)userMsg.image_url=imgList.map(u=>({url:u}));
+            messages=[{role:'system',content:SYSTEM},userMsg];
+        }else{
+            // OpenAI 兼容格式（Qwen VL、GLM-4V、GPT-4o 等）
+            const userContent=[{type:'text',text:fullPrompt}];
+            imgList.forEach(u=>userContent.push({type:'image_url',image_url:{url:u}}));
+            messages=[{role:'system',content:SYSTEM},{role:'user',content:userContent}];
+        }
+    }else if(hasMedia){
+        // ---- 纯文本模型（无视觉可用）：ASCII 结构图 + OCR 文字 + 媒体解读技能 ----
+        messages=[
+            {role:'system',content:SYSTEM},
+            {role:'user',content:await buildFullPrompt(onProgress)}
+        ];
     }else{
         messages=[
-            {role:'system',content:'你是一位融合广告心理学、商业模式诊断、用户思维、财务分析和信息判断的顶级商业分析师——"商人之眼"。请按照用户要求的框架进行深度分析。逐项展开，每项都有"分析过程→结论"。用具体数字和场景论证，给出可直接行动的建议。用Markdown格式输出。'},
-            {role:'user',content:buildFullPrompt()}
+            {role:'system',content:SYSTEM},
+            {role:'user',content:await buildFullPrompt(onProgress)}
         ];
     }
 
+    const provLabel=useVisionFallback?('商人之眼·'+visionCfg.model):'商人之眼';
     callAI(
         messages,
         (t)=>{body.innerHTML=renderMd(t);body.scrollTop=body.scrollHeight},
         (full)=>{
             clearInterval(ti);
             const s=((Date.now()-t0)/1000|0);
-            const provLabel=useVisionFallback?'商人之眼·'+visionCfg.model:'商人之眼';
             body.innerHTML=renderMd(full)+`<div style="text-align:right;color:var(--tx3);font-size:.72rem;margin-top:14px;padding-top:10px;border-top:1px solid var(--bd)">分析完成 · ${s}秒 · ${provLabel}</div>`;
             body.scrollTop=body.scrollHeight;
             btn.disabled=false;btn.textContent='🔄 重新分析';
@@ -862,7 +1266,7 @@ async function run(){
             body.innerHTML=`<div style="text-align:center;padding:30px;color:var(--rd)">${err}</div><div style="text-align:center;margin-top:14px"><button class="tool-btn" onclick="openMo()">⚙️ 配置 AI</button></div>`;
             btn.disabled=false;btn.textContent='🚀 运行全维分析';
         },
-        useVisionFallback ? visionCfg : null
+        useVisionFallback?visionCfg:null
     );
     out.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
@@ -1148,7 +1552,7 @@ if (isWechat) {
 }
 
 // ==================== VERSION & AUTO UPDATE ====================
-const APP_VERSION='v20260702b';
+const APP_VERSION='v20260816c';
 // Check for updates every 30 seconds
 setInterval(()=>{
     fetch('index.html',{cache:'no-store',method:'HEAD'}).then(r=>{
@@ -1187,7 +1591,7 @@ loadCfg();
     }
 })();
 
-// Auto-detect paste of image
+// Auto-detect paste of image / video
 document.addEventListener('paste',e=>{
     const items=e.clipboardData?.items;
     if(!items)return;
@@ -1202,7 +1606,7 @@ document.addEventListener('paste',e=>{
     }
 });
 
-// Drag and drop
+// Drag and drop (images + videos)
 const ia=$('input-area');
 ia.addEventListener('dragover',e=>{e.preventDefault();ia.style.borderColor='var(--gold)'});
 ia.addEventListener('dragleave',()=>{ia.style.borderColor='var(--bd)'});
@@ -1213,6 +1617,15 @@ ia.addEventListener('drop',e=>{
         if(f.type.startsWith('image/')){
             const r=new FileReader();
             r.onload=()=>{attachments.push({type:'image',data:r.result,name:f.name});renderAtt()};
+            r.readAsDataURL(f);
+        }else if(f.type.startsWith('video/')){
+            const r=new FileReader();
+            r.onload=()=>{
+                const att={type:'video',data:r.result,name:f.name};
+                videoPoster(r.result).then(thumb=>{att.thumb=thumb;renderAtt()}).catch(()=>renderAtt());
+                attachments.push(att);
+                renderAtt();
+            };
             r.readAsDataURL(f);
         }
     }
