@@ -284,9 +284,56 @@
         </div>
     </div>
 
+    <!-- Login Modal -->
+    <div class="mo open" id="login-mo">
+        <div class="mc">
+            <h3>👁️ 商人之眼 · 登录</h3>
+            <p>请输入账号或手机号登录后使用。游客（手机号）每人共 3 次使用额度。</p>
+            <div class="sg"><label>账号 / 手机号</label><input class="si" id="lg-id" placeholder="LB / 已创建账号 / 手机号" autocomplete="username"></div>
+            <div class="sg"><label>密码（游客可留空）</label><input type="password" class="si" id="lg-pwd" placeholder="密码"></div>
+            <div class="sh" id="lg-msg" style="color:var(--rd);min-height:16px"></div>
+            <div class="sr" style="margin-top:12px">
+                <button class="bt" id="lg-btn" onclick="doLogin()">登 录</button>
+                <button class="tool-btn" id="lg-guest" onclick="guestLogin()">📱 游客登录（手机号 · 3次额度）</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Modal (LB only) -->
+    <div class="mo" id="admin-mo">
+        <div class="mc" style="max-width:640px">
+            <h3>👑 账号管理（LB）</h3>
+            <div style="font-size:.82rem;color:var(--tx2);margin-bottom:12px">管理已创建账号的额度与有效期；游客额度记录在本机浏览器。</div>
+            <div style="font-size:.82rem;font-weight:700;color:var(--gold);margin-bottom:6px">➕ 添加账号</div>
+            <div class="sr">
+                <div class="sg"><label>账号</label><input class="si" id="au-name" placeholder="账号名"></div>
+                <div class="sg"><label>密码</label><input class="si" id="au-pwd" placeholder="密码"></div>
+            </div>
+            <div class="sr">
+                <div class="sg"><label>可用次数</label><input class="si" id="au-count" type="number" value="10" min="1"></div>
+                <div class="sg"><label>到期时间（留空=永久）</label><input class="si" id="au-expire" type="datetime-local"></div>
+            </div>
+            <div style="margin:6px 0 12px"><button class="bt" onclick="addUser()">添加账号</button></div>
+            <div style="font-size:.82rem;font-weight:700;color:var(--gold);margin-bottom:6px">账号列表</div>
+            <div id="admin-users" style="max-height:200px;overflow-y:auto"></div>
+            <div style="font-size:.82rem;font-weight:700;color:var(--gold);margin:14px 0 6px">游客使用记录（本设备）</div>
+            <div id="admin-guests" style="max-height:160px;overflow-y:auto;font-size:.8rem;color:var(--tx2)"></div>
+            <div style="margin-top:18px;display:flex;gap:10px;justify-content:flex-end">
+                <button onclick="closeAdmin()" style="padding:9px 16px;border-radius:8px;background:var(--gold);color:var(--bg);border:none;font-weight:700;cursor:pointer;font-family:var(--fb);font-size:.82rem">关闭</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Header -->
     <header class="hd">
-        <button class="cbtn" onclick="openMo()"><span class="d off" id="h-dot"></span><span id="h-txt">配置 AI</span></button>
+        <div style="position:absolute;top:28px;right:0;left:0;display:flex;justify-content:space-between;align-items:center;gap:8px">
+            <span id="user-badge" style="font-size:.78rem;color:var(--tx2)"></span>
+            <span style="display:flex;gap:6px;margin-left:auto">
+                <button class="cbtn" id="admin-btn" style="display:none" onclick="openAdmin()">👑 账号管理</button>
+                <button class="cbtn" onclick="openMo()"><span class="d off" id="h-dot"></span><span id="h-txt">配置 AI</span></button>
+                <button class="cbtn" id="logout-btn" onclick="logout()">退出</button>
+            </span>
+        </div>
         <div class="logo">商人之眼</div>
         <div class="sub">AI 商业分析引擎</div>
         <p class="desc">输入任何商业观察——广告、店铺、抱怨、商品、消费、新闻、图片、链接——AI 自动运行全套思维框架，输出完整深度解读。</p>
@@ -354,6 +401,119 @@ let attachments=[];
 let ac=null;
 // 看图备用模型：主模型不支持图片时自动切换（Key 留空则用结构图+OCR 模式）
 let visionCfg={prov:'qwen',model:'qwen-vl-plus',key:'',url:'https://dashscope.aliyuncs.com/compatible-mode/v1/'};
+
+// ==================== ACCOUNT SYSTEM ====================
+// 最高权限账号 LB；已创建账号由 LB 设次数/有效期；游客用手机号登录，每号共 3 次。
+// 说明：静态站点无后端，账号与使用记录保存在本机浏览器（localStorage）。
+const LB_NAME='LB', LB_PWD='lb642426', GUEST_QUOTA=3;
+let auth=null; // {kind:'lb'} | {kind:'user',name} | {kind:'guest',phone}
+function loadUsers(){try{return JSON.parse(localStorage.getItem('me2_users')||'{}')}catch(e){return {}}}
+function saveUsers(u){localStorage.setItem('me2_users',JSON.stringify(u))}
+function loadGuests(){try{return JSON.parse(localStorage.getItem('me2_guests')||'{}')}catch(e){return {}}}
+function saveGuests(g){localStorage.setItem('me2_guests',JSON.stringify(g))}
+function loadAuth(){try{return JSON.parse(localStorage.getItem('me2_auth')||'null')}catch(e){return null}}
+function saveAuth(a){if(a)localStorage.setItem('me2_auth',JSON.stringify(a));else localStorage.removeItem('me2_auth')}
+function validPhone(p){return /^1\d{10}$/.test((p||'').trim())||/^\d{6,11}$/.test((p||'').trim())}
+function doLogin(){
+    const id=$('lg-id').value.trim(),pwd=$('lg-pwd').value;
+    const msg=$('lg-msg');
+    if(id===LB_NAME&&pwd===LB_PWD){auth={kind:'lb',name:LB_NAME};saveAuth(auth);applyAuthUI();closeLogin();return}
+    const users=loadUsers();
+    if(users[id]&&users[id].pwd===pwd){auth={kind:'user',name:id};saveAuth(auth);applyAuthUI();closeLogin();return}
+    msg.textContent='账号或密码错误';
+}
+function guestLogin(){
+    const id=$('lg-id').value.trim();
+    const msg=$('lg-msg');
+    if(!validPhone(id)){msg.textContent='请输入真实手机号（11位）';return}
+    const guests=loadGuests();
+    if(!guests[id])guests[id]={used:0,last:Date.now()};
+    saveGuests(guests);
+    auth={kind:'guest',phone:id};saveAuth(auth);applyAuthUI();closeLogin();
+    const g=guests[id];
+    msg.textContent='';
+    $('lg-id').value='';$('lg-pwd').value='';
+    alert('游客登录成功：手机号 '+id+' 剩余 '+Math.max(0,GUEST_QUOTA-g.used)+' 次使用额度');
+}
+function logout(){auth=null;saveAuth(null);applyAuthUI();$('login-mo').classList.add('open');$('lg-msg').textContent=''}
+function closeLogin(){$('login-mo').classList.remove('open')}
+function authStatus(){
+    if(!auth)return {ok:false,msg:'未登录'};
+    if(auth.kind==='lb')return {ok:true,msg:'管理员（无限额度）'};
+    if(auth.kind==='user'){
+        const u=loadUsers()[auth.name];
+        if(!u)return {ok:false,msg:'账号不存在或已被删除，请重新登录'};
+        if(u.expire&&Date.now()>u.expire)return {ok:false,msg:'账号已到期，请联系管理员'};
+        if(u.count!=null&&u.used>=u.count)return {ok:false,msg:'账号使用次数已用完（'+u.used+'/'+u.count+'），请联系管理员'};
+        return {ok:true,msg:'账号 '+auth.name+' · 剩余 '+(u.count-u.used)+'/'+u.count+(u.expire?' · '+new Date(u.expire).toLocaleString():'')};
+    }
+    if(auth.kind==='guest'){
+        const g=loadGuests()[auth.phone];
+        if(!g)return {ok:false,msg:'游客记录不存在，请重新登录'};
+        if(g.used>=GUEST_QUOTA)return {ok:false,msg:'游客账号 '+auth.phone+' 已达 3 次使用上限，无法继续使用'};
+        return {ok:true,msg:'游客 '+auth.phone+' · 剩余 '+(GUEST_QUOTA-g.used)+' 次'};
+    }
+    return {ok:false,msg:'未知状态'};
+}
+function consumeUse(){
+    if(!auth)return;
+    if(auth.kind==='user'){
+        const u=loadUsers();if(!u[auth.name])return;u[auth.name].used=(u[auth.name].used||0)+1;saveUsers(u);
+    }else if(auth.kind==='guest'){
+        const g=loadGuests();if(!g[auth.phone])return;g[auth.phone].used=(g[auth.phone].used||0)+1;g[auth.phone].last=Date.now();saveGuests(g);
+    }
+    applyAuthUI();
+}
+function applyAuthUI(){
+    const b=$('user-badge'),st=authStatus();
+    if(b){
+        if(auth)b.innerHTML=(auth.kind==='lb'?'👑 ':auth.kind==='user'?'👤 ':'📱 ')+(auth.kind==='guest'?auth.phone:auth.name)+' · '+st.msg;
+        else b.textContent='';
+    }
+    const ab=$('admin-btn');if(ab)ab.style.display=(auth&&auth.kind==='lb')?'inline-block':'none';
+    const lb=$('logout-btn');if(lb)lb.style.display=auth?'inline-block':'none';
+}
+function openAdmin(){renderUsers();renderGuests();$('admin-mo').classList.add('open')}
+function closeAdmin(){$('admin-mo').classList.remove('open')}
+function addUser(){
+    const name=$('au-name').value.trim(),pwd=$('au-pwd').value,count=parseInt($('au-count').value,10);
+    let expire=$('au-expire').value;
+    if(!name||!pwd){alert('请填写账号和密码');return}
+    const u=loadUsers();
+    if(u[name]){alert('账号已存在');return}
+    u[name]={pwd:pwd,count:isFinite(count)&&count>0?count:10,used:0,expire:expire?new Date(expire).getTime():null};
+    saveUsers(u);
+    $('au-name').value='';$('au-pwd').value='';$('au-expire').value='';
+    renderUsers();
+}
+function delUser(name){const u=loadUsers();if(u[name]&&confirm('删除账号 '+name+'？')){delete u[name];saveUsers(u);renderUsers()}}
+function setUserCount(name,count){const u=loadUsers();if(u[name]){u[name].count=Math.max(1,parseInt(count,10)||1);saveUsers(u);renderUsers()}}
+function renderUsers(){
+    const box=$('admin-users');const u=loadUsers();const names=Object.keys(u);
+    if(!names.length){box.innerHTML='<div style="color:var(--tx3)">暂无已创建账号</div>';return}
+    box.innerHTML=names.map(n=>{
+        const a=u[n];
+        const exp=a.expire?new Date(a.expire).toLocaleString():'永久';
+        return `<div style="display:flex;gap:8px;align-items:center;justify-content:space-between;padding:7px 4px;border-bottom:1px solid var(--bd);font-size:.8rem">
+            <span style="min-width:0">${n}</span>
+            <span style="color:var(--tx2)">已用 ${a.used||0}/${a.count||'∞'}</span>
+            <span style="color:var(--tx2);font-size:.72rem">${exp}</span>
+            <span style="display:flex;gap:4px;flex:none">
+                <input type="number" style="width:64px;background:var(--bg3);border:1px solid var(--bd);color:var(--tx);border-radius:6px;padding:3px 6px;font-size:.75rem" value="${a.count}" onchange="setUserCount('${n}',this.value)">
+                <button class="tool-btn" style="padding:2px 8px" onclick="delUser('${n}')">✕</button>
+            </span>
+        </div>`;
+    }).join('');
+}
+function renderGuests(){
+    const box=$('admin-guests');const g=loadGuests();const keys=Object.keys(g);
+    if(!keys.length){box.innerHTML='<div style="color:var(--tx3)">本设备暂无游客使用记录</div>';return}
+    box.innerHTML=keys.map(k=>{
+        const r=g[k];
+        return `<div style="display:flex;justify-content:space-between;padding:4px 2px;border-bottom:1px solid var(--bd)">
+            <span>${k}</span><span style="color:var(--tx2)">已用 ${r.used}/3${r.last?' · '+new Date(r.last).toLocaleString():''}</span></div>`;
+    }).join('');
+}
 
 const PROVIDERS={
     deepseek:{name:'DeepSeek',url:'https://api.deepseek.com/v1/',models:[
@@ -935,6 +1095,9 @@ const MEDIA_SKILL_SYSTEM=`## 媒体解读技能（当用户附带图片/视频�
 
 用户附带了图片或视频。你看到的是"画面结构图 + 颜色 + OCR 识别的文字"，而不是原图。请完成四层解读，**绝不能只描述风格、配色、版式就结束**：
 
+### 第零层：全维度覆盖（强制）
+**图片/视频分析的维度、深度、细节必须与纯文字输入完全一致**：先判断画面内容属于哪类商业观察（广告截图 / 店铺或门头照片 / 商品图 / 聊天或朋友圈截图 / 电商页面 / 新闻或数据截图 / 线下活动等），然后运行全部适用的分析框架——广告拆解、店铺诊断、利润感知、供需挖掘、用户画像、资金判断、信息提炼——逐项"分析过程→结论"，输出同等篇幅与细节。禁止因输入是图片而只做"广告拆解"或只描述画面。若画面信息不足以支撑某维度，明确说明"该维度证据不足"并给出从画面可推导的推断。
+
 ### 第一层：事实转录（只看不猜）
 1. 逐条引用 OCR 识别出的文字（含标点；若有明显错别字用括号标注）
 2. 画面主体：出现的人/物/场景/图标/品牌元素分别是什么
@@ -1173,6 +1336,8 @@ function renderMd(text){
 
 // ==================== RUN ====================
 async function run(){
+    const st=authStatus();
+    if(!st.ok){alert(st.msg);if(!auth)$('login-mo').classList.add('open');return}
     const text=$('main-input').value.trim();
     if(!text && attachments.length===0){alert('请先输入内容或添加图片/链接');return}
 
@@ -1263,6 +1428,7 @@ async function run(){
         btn.disabled=false;btn.textContent='🚀 运行全维分析';
     };
     const done=(full)=>{
+        consumeUse();
         clearInterval(ti);
         const s=((Date.now()-t0)/1000|0);
         body.innerHTML=renderMd(full)+`<div style="text-align:right;color:var(--tx3);font-size:.72rem;margin-top:14px;padding-top:10px;border-top:1px solid var(--bd)">分析完成 · ${s}秒 · ${provLabel}</div>`;
@@ -1570,7 +1736,7 @@ if (isWechat) {
 }
 
 // ==================== VERSION & AUTO UPDATE ====================
-const APP_VERSION='v20260816d';
+const APP_VERSION='v20260816e';
 // Check for updates every 30 seconds
 setInterval(()=>{
     fetch('index.html',{cache:'no-store',method:'HEAD'}).then(r=>{
@@ -1598,6 +1764,9 @@ if ('serviceWorker' in navigator) {
 
 // ==================== INIT ====================
 loadCfg();
+auth=loadAuth();
+applyAuthUI();
+if(auth)closeLogin();
 
 // Check voice support on load
 (function(){
