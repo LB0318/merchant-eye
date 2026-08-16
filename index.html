@@ -324,19 +324,29 @@
         </div>
     </div>
 
+    <!-- Settings Modal (统一设置入口) -->
+    <div class="mo" id="settings-mo">
+        <div class="mc">
+            <h3>⚙️ 设置</h3>
+            <div class="sg" id="set-acc" style="font-size:.82rem;color:var(--tx2);margin-bottom:4px"></div>
+            <div style="display:flex;flex-direction:column;gap:10px;margin-top:14px">
+                <button class="tool-btn" id="set-admin" style="display:none;justify-content:center;padding:10px" onclick="closeSettings();openAdmin()">👑 账号管理</button>
+                <button class="tool-btn" style="justify-content:center;padding:10px" onclick="closeSettings();openMo()">⚙️ AI 配置</button>
+                <button class="tool-btn" id="set-logout" style="justify-content:center;padding:10px" onclick="closeSettings();logout()">🚪 退出登录</button>
+            </div>
+            <div style="margin-top:18px;display:flex;gap:10px;justify-content:flex-end">
+                <button onclick="closeSettings()" style="padding:9px 16px;border-radius:8px;background:var(--gold);color:var(--bg);border:none;font-weight:700;cursor:pointer;font-family:var(--fb);font-size:.82rem">关闭</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Header -->
     <header class="hd">
-        <div style="position:absolute;top:28px;right:0;left:0;display:flex;justify-content:space-between;align-items:center;gap:8px">
-            <span id="user-badge" style="font-size:.78rem;color:var(--tx2)"></span>
-            <span style="display:flex;gap:6px;margin-left:auto">
-                <button class="cbtn" id="admin-btn" style="display:none" onclick="openAdmin()">👑 账号管理</button>
-                <button class="cbtn" onclick="openMo()"><span class="d off" id="h-dot"></span><span id="h-txt">配置 AI</span></button>
-                <button class="cbtn" id="logout-btn" onclick="logout()">退出</button>
-            </span>
-        </div>
+        <button class="cbtn" id="set-btn" style="position:absolute;top:28px;right:0" onclick="openSettings()">⚙️ 设置</button>
         <div class="logo">商人之眼</div>
         <div class="sub">AI 商业分析引擎</div>
         <p class="desc">输入任何商业观察——广告、店铺、抱怨、商品、消费、新闻、图片、链接——AI 自动运行全套思维框架，输出完整深度解读。</p>
+        <div id="user-badge" style="margin-top:14px;font-size:.74rem;color:var(--tx2);text-align:center;line-height:1.7;min-height:0"></div>
     </header>
 
     <!-- Unified Input -->
@@ -465,14 +475,20 @@ function consumeUse(){
     applyAuthUI();
 }
 function applyAuthUI(){
-    const b=$('user-badge'),st=authStatus();
+    const b=$('user-badge');
     if(b){
-        if(auth)b.innerHTML=(auth.kind==='lb'?'👑 ':auth.kind==='user'?'👤 ':'📱 ')+(auth.kind==='guest'?auth.phone:auth.name)+' · '+st.msg;
+        const st=authStatus();
+        if(auth)b.innerHTML=(auth.kind==='lb'?'👑 管理员':auth.kind==='user'?'👤 '+auth.name:'📱 '+auth.phone)+' · '+st.msg;
         else b.textContent='';
     }
-    const ab=$('admin-btn');if(ab)ab.style.display=(auth&&auth.kind==='lb')?'inline-block':'none';
-    const lb=$('logout-btn');if(lb)lb.style.display=auth?'inline-block':'none';
+    const ab=$('set-admin');if(ab)ab.style.display=(auth&&auth.kind==='lb')?'inline-flex':'none';
 }
+function openSettings(){
+    const acc=$('set-acc');if(acc)acc.textContent='当前账号：'+(authStatus().msg||'未登录');
+    applyAuthUI();
+    $('settings-mo').classList.add('open');
+}
+function closeSettings(){$('settings-mo').classList.remove('open')}
 function openAdmin(){renderUsers();renderGuests();$('admin-mo').classList.add('open')}
 function closeAdmin(){$('admin-mo').classList.remove('open')}
 function addUser(){
@@ -629,7 +645,7 @@ const PROVIDERS={
 
 function loadCfg(){try{const s=localStorage.getItem('me2_cfg');if(s)cfg=JSON.parse(s)}catch(e){}try{const v=localStorage.getItem('me2_vcfg');if(v)visionCfg=JSON.parse(v)}catch(e){}applyUI()}
 function saveCfg(){cfg.prov=$('cfg-prov').value;cfg.model=$('cfg-model').value;cfg.key=$('cfg-key').value.trim();cfg.url=$('cfg-url').value.trim();localStorage.setItem('me2_cfg',JSON.stringify(cfg));visionCfg.prov=$('cfg-vprov').value;visionCfg.model=$('cfg-vmodel').value;visionCfg.key=$('cfg-vkey').value.trim();visionCfg.url=PROVIDERS[visionCfg.prov]?.url||'';localStorage.setItem('me2_vcfg',JSON.stringify(visionCfg));applyUI();closeMo()}
-function applyUI(){const d=$('h-dot'),t=$('h-txt');if(cfg.key){const prov=PROVIDERS[cfg.prov];const n=prov?prov.name:'AI';t.textContent=n+' · '+cfg.model;d.className='d on'}else{t.textContent='配置 AI';d.className='d off'}}
+function applyUI(){const d=$('h-dot'),t=$('h-txt');if(!d||!t)return;if(cfg.key){const prov=PROVIDERS[cfg.prov];const n=prov?prov.name:'AI';t.textContent=n+' · '+cfg.model;d.className='d on'}else{t.textContent='配置 AI';d.className='d off'}}
 function openMo(){$('modal').classList.add('open');$('cfg-prov').value=cfg.prov;onProv();$('cfg-model').value=cfg.model;$('cfg-key').value=cfg.key;$('cfg-url').value=cfg.url||'';$('cfg-vprov').value=visionCfg.prov||'qwen';onVProv();$('cfg-vmodel').value=visionCfg.model||'qwen-vl-plus';$('cfg-vkey').value=visionCfg.key||''}
 function closeMo(){$('modal').classList.remove('open')}
 function onVProv(){
@@ -1093,35 +1109,36 @@ async function ocrImage(dataUrl,progress){
 // 媒体解读技能：强制从"画面描述"推进到"真实意图"，避免停留在风格/配色层面。
 const MEDIA_SKILL_SYSTEM=`## 媒体解读技能（当用户附带图片/视频时必须执行）
 
-用户附带了图片或视频。你看到的是"画面结构图 + 颜色 + OCR 识别的文字"，而不是原图。请完成四层解读，**绝不能只描述风格、配色、版式就结束**：
+用户附带了图片或视频。你看到的是"画面结构图 + 颜色 + OCR 识别的文字"，而不是原图。请严格按照"三段式"输出：**先解读图片内容本身 → 再解读意图 → 再做与文字输入完全相同的全维度详细分析**。总深度、维度、细节必须与纯文字输入完全一致，绝不能只描述风格、配色、版式就结束。
 
-### 第零层：全维度覆盖（强制）
-**图片/视频分析的维度、深度、细节必须与纯文字输入完全一致**：先判断画面内容属于哪类商业观察（广告截图 / 店铺或门头照片 / 商品图 / 聊天或朋友圈截图 / 电商页面 / 新闻或数据截图 / 线下活动等），然后运行全部适用的分析框架——广告拆解、店铺诊断、利润感知、供需挖掘、用户画像、资金判断、信息提炼——逐项"分析过程→结论"，输出同等篇幅与细节。禁止因输入是图片而只做"广告拆解"或只描述画面。若画面信息不足以支撑某维度，明确说明"该维度证据不足"并给出从画面可推导的推断。
+### 第一段：图片内容解读（先描述画面本身，不急于下结论）
+1. 逐条引用 OCR 识别出的全部文字（含标点；明显错别字用括号标注）
+2. 画面主体与元素：出现的人/物/场景/图标/品牌/价格标签/数据表格等逐一说明
+3. 版面与视觉：布局分区、视觉焦点位置、配色与风格（一段话概括即可，不展开）
 
-### 第一层：事实转录（只看不猜）
-1. 逐条引用 OCR 识别出的文字（含标点；若有明显错别字用括号标注）
-2. 画面主体：出现的人/物/场景/图标/品牌元素分别是什么
-3. 布局与风格（一句话即可，不展开）
+### 第二段：意图解读（画面的真实目的）
+1. 卖什么/推什么：真正推广的产品、服务、账号、课程是什么（画面最显眼的字 ≠ 真正的商品，注意区分）
+2. 对谁说：目标人群（性别/年龄/圈层/使用场景），从措辞和画面人物反推
+3. 主张与钩子：核心卖点、承诺、悬念、恐吓/威胁、稀缺、从众等
+4. 转化设计：价格锚点、促销话术、行动号召（加微信/下单/私信/下载）、信任背书（销量/明星/资质/假一赔十）
+5. 真实意图判断：表面卖 X、实际推 Y 的情况（钩子引流/测品/清库存/养号等）；文案与画面是否夸大或矛盾（标注可疑点）
 
-### 第二层：意图拆解（广告的"真话"）
-对画面中的每条文案和视觉元素逐一回答：
-- 卖什么：真正推广的产品/服务/账号/课程是什么（画面最显眼的字 ≠ 真正的商品，注意区分）
-- 对谁说：目标人群（性别/年龄/圈层/使用场景），从措辞和画面人物反推
-- 主张与钩子：核心卖点、承诺、悬念、恐吓/威胁、稀缺、从众等
-- 转化设计：价格锚点、促销话术、行动号召（加微信/下单/私信/下载）、信任背书（销量/明星/资质/假一赔十）
+### 第三段：详细解读分析（与文字输入完全相同，禁止省略维度）
+判定画面内容属于哪类商业观察（广告截图/店铺或门头照片/商品图/聊天或朋友圈截图/电商页面/新闻或数据截图/线下活动等），然后运行全部适用的分析框架，逐项"分析过程→结论"，输出同等深度与细节：
+- 广告拆解：七步心理闭环、七层心智触发模型、六种情感扳机、成交路径全链路还原
+- 店铺诊断：收入端估算、成本端拆解、月保本收入、20种系统性死法对照（★标注高概率项）
+- 利润感知：成本结构估算、加价路径分析、供应链博弈
+- 供需挖掘：需求翻译、目标人群画像、商机方案设计、7天快速验证步骤
+- 用户画像：画用户（有体温的人）、定任务、找替代品、支付意愿、一句话非买理由
+- 资金判断：纯消耗/资产型/需反思、回报三问、机会成本、决策建议
+- 信息提炼：30秒三要素、利益链分析、模拟决策者、预测与追踪
+若某维度画面信息不足，明确说明"该维度证据不足"，并给出从画面可推导的合理推断；**禁止因输入是图片而省略维度或只做广告拆解**。
 
-### 第三层：真实意图判断（最关键，必须输出）
-- 这条内容最终想让目标用户做的**转化动作链**是什么（看到→相信→行动）
-- 表面卖 X、实际推 Y 的情况（如：低价课钩子带高价课、卖教程实为私域引流、投广告为测品/养号/清库存）
-- 文案与画面是否夸大或矛盾（标注可疑点）
-- 这条生意里谁在赚什么钱（流量方/供应链/平台/卖家各自的收益结构）
-
-### 第四层：可迁移洞察
-- 这套打法可复用到什么场景
-- 如果是你接手这条生意，3 个具体的优化动作
-- 值得持续追踪的信号/指标
-
-严格按以上四层输出，Markdown 格式，每层都有具体依据（引用 OCR 原文或结构图特征），不要泛泛而谈。`;
+### 收尾：跨维度洞察与行动方案
+1. 最让你意外的一个发现
+2. 最有行动价值的一个洞察
+3. 最值得持续追踪的一条线索
+4. 如果你是创业者/投资者/消费者，这条内容分别告诉你什么`;
 
 // ==================== BUILD MESSAGE ====================
 function buildMessages(){
@@ -1736,7 +1753,7 @@ if (isWechat) {
 }
 
 // ==================== VERSION & AUTO UPDATE ====================
-const APP_VERSION='v20260816f';
+const APP_VERSION='v20260816g';
 // Check for updates every 30 seconds
 setInterval(()=>{
     fetch('index.html',{cache:'no-store',method:'HEAD'}).then(r=>{
