@@ -90,6 +90,21 @@
         .out-b::-webkit-scrollbar{width:4px}
         .out-b::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:2px}
 
+        /* Follow-up Q&A */
+        .follow{background:var(--bg2);border:1px solid var(--bd);border-radius:16px;padding:18px 20px;margin-top:16px;display:none}
+        .follow.show{display:block;animation:up .3s ease;border-color:var(--gd);box-shadow:0 0 0 3px var(--gg)}
+        .follow-h{font-size:.76rem;color:var(--gold);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+        .follow-sub{font-size:.76rem;color:var(--tx3);margin-bottom:12px;line-height:1.7}
+        .follow-ta{width:100%;min-height:72px;padding:12px 14px;background:var(--bg3);border:1px solid var(--bd);border-radius:10px;color:var(--tx);font-family:var(--fb);font-size:.9rem;line-height:1.7;resize:vertical;outline:none;transition:border .2s}
+        .follow-ta:focus{border-color:var(--gd);box-shadow:0 0 0 3px var(--gg)}
+        .follow-bar{display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap}
+        .follow-btn{padding:11px 26px;border-radius:10px;background:var(--gold);color:var(--bg);border:none;font-family:var(--fb);font-size:.9rem;font-weight:700;cursor:pointer;transition:all .2s;letter-spacing:.5px}
+        .follow-btn:hover{background:#d4b55a;transform:translateY(-1px);box-shadow:0 4px 20px rgba(200,168,78,.25)}
+        .follow-btn:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
+        .follow-err{color:var(--rd);font-size:.78rem;margin-top:8px;min-height:14px}
+        .q-bubble{margin-top:20px;padding:10px 14px;background:var(--bg4);border:1px solid var(--bd);border-left:3px solid var(--gold);border-radius:0 10px 10px 0;font-size:.86rem;color:var(--gold);line-height:1.7}
+        .a-meta{text-align:right;color:var(--tx3);font-size:.72rem;margin-top:10px;padding-top:8px;border-top:1px solid var(--bd)}
+
         /* Markdown */
         .md h1,.md h2,.md h3{font-family:var(--fd);color:var(--gold);margin:22px 0 10px;letter-spacing:.5px}
         .md h1{font-size:1.3rem;border-bottom:1px solid var(--bd);padding-bottom:8px}
@@ -174,6 +189,9 @@
             .out-h span{font-size:.7rem}
             .out-b{padding:16px;max-height:70vh;font-size:.85rem;line-height:1.8}
             .md h1{font-size:1.15rem}.md h2{font-size:1.05rem}.md h3{font-size:.92rem}
+            .follow{padding:14px 14px;border-radius:12px;margin-top:12px}
+            .follow-ta{min-height:60px;font-size:.85rem;padding:10px 12px}
+            .follow-btn{font-size:.85rem;padding:10px 18px}
             .mc{padding:24px 20px;border-radius:14px;max-height:90vh;overflow-y:auto}
             .mc h3{font-size:1.15rem}
             .sg{margin-bottom:14px}
@@ -345,13 +363,13 @@
         <button class="cbtn" id="set-btn" style="position:absolute;top:28px;right:0" onclick="openSettings()">⚙️ 设置</button>
         <div class="logo">商人之眼</div>
         <div class="sub">AI 商业分析引擎</div>
-        <p class="desc">输入任何商业观察——广告、店铺、抱怨、商品、消费、新闻、图片、链接——AI 自动运行全套思维框架，输出完整深度解读。</p>
+        <p class="desc">输入任何商业观察——广告、店铺、抱怨、商品、消费、新闻、图片、链接——AI 一律从七大维度全方位详细分析；分析完成后还可无限次追加提问，每次追问都重新全维剖析。</p>
         <div id="user-badge" style="margin-top:14px;font-size:.74rem;color:var(--tx2);text-align:center;line-height:1.7;min-height:0"></div>
     </header>
 
     <!-- Unified Input -->
     <div class="input-area" id="input-area">
-        <textarea class="input-main" id="main-input" placeholder="描述你看到的商业现象...&#10;&#10;支持：文字、语音、拍照、图片、链接等。&#10;例如：&#10;· 一条广告的画面和文案&#10;· 一家店铺的观察&#10;· 朋友的一句抱怨&#10;· 一笔消费的决策&#10;· 一条商业新闻&#10;· https://...（粘贴链接）"></textarea>
+        <textarea class="input-main" id="main-input" placeholder="描述你看到的商业现象...&#10;&#10;支持：文字、语音、拍照、图片、链接等。&#10;例如：&#10;· 一条广告的画面和文案&#10;· 一家店铺的观察&#10;· 朋友的一句抱怨&#10;· 一笔消费的决策&#10;· 一条商业新闻&#10;· https://...（粘贴链接）&#10;&#10;分析完成后，可继续在下方追加提问（AI 会结合前文重新全维剖析）"></textarea>
         <div class="attachments" id="att-box"></div>
         <div id="vision-tip" style="display:none;margin-top:10px;padding:9px 12px;background:var(--gg);border:1px solid var(--gd);border-radius:10px;font-size:.78rem;color:var(--tx2);line-height:1.7">
             💡 当前模型<b style="color:var(--gold)">不支持图片输入</b>（DeepSeek API 不收图）。图片/视频将转为"结构图+OCR文字"分析；要<b style="color:var(--gold)">精准识别原图文字与真实推广意图</b>，请配置视觉模型（推荐 智谱 GLM-4V-Flash【免费】、Kimi、豆包）。
@@ -401,6 +419,18 @@
         <div class="out-b md" id="out-body"></div>
     </div>
 
+    <!-- Follow-up Q&A Panel -->
+    <div class="follow" id="follow-box">
+        <div class="follow-h">💬 追加提问</div>
+        <div class="follow-sub">结合刚才的原始输入与分析结果，AI 将对你的追问从七大维度重新全方位剖析（可连续追问）。</div>
+        <textarea class="follow-ta" id="follow-input" placeholder="对刚才的分析追加提问，例如：&#10;· 这个模式在三四线城市能复制吗？&#10;· 如果换我是商家，下一步该做什么？&#10;· 那家店死法概率最高的是哪几个？&#10;· 换个角度：消费者真的会买单吗？"></textarea>
+        <div class="follow-bar">
+            <button class="follow-btn" id="follow-btn" onclick="askFollow()">🔍 追问 · 全维分析</button>
+            <span style="font-size:.72rem;color:var(--tx3)">Enter 发送 · Shift+Enter 换行</span>
+        </div>
+        <div class="follow-err" id="follow-err"></div>
+    </div>
+
     <footer class="ft">道术合一 · 从商业间谍到商业觉者</footer>
 </div>
 
@@ -411,6 +441,10 @@ let attachments=[];
 let ac=null;
 // 看图备用模型：主模型不支持图片时自动切换（Key 留空则用结构图+OCR 模式）
 let visionCfg={prov:'qwen',model:'qwen-vl-plus',key:'',url:'https://dashscope.aliyuncs.com/compatible-mode/v1/'};
+// 追加提问上下文：conv 保存对话轮次；lastUserContext 保存本轮原始输入；followBusy 防止重复提交
+let conv=[];
+let lastUserContext='';
+let followBusy=false;
 
 // ==================== ACCOUNT SYSTEM ====================
 // 最高权限账号 LB；已创建账号由 LB 设次数/有效期；游客用手机号登录，每号共 3 次。
@@ -1105,6 +1139,40 @@ async function ocrImage(dataUrl,progress){
     }
 }
 
+// ==================== MASTER-LEVEL FRAMEWORKS (shared) ====================
+// 七大分析框架大师级细则：主分析 / 追问 / 媒体解读 三处统一引用，保证任何输入深度一致
+const FRAMEWORKS_DETAIL=`## 分析铁律（对任何输入一律执行，禁止省略维度）
+无论输入是广告、店铺、商品、抱怨、消费、新闻、图片、视频、链接还是其他任何内容，都必须完整运行下面**全部七大分析框架**。大师级要求：
+1. 每个判断必须"有依据、有推理、有置信度（高/中/低）"，拒绝"正确的废话"；
+2. 每个框架结束时，必须给出**【一个可立即执行的动作】+【一个关键数字】+【一个主要风险】**，让结论落到可操作层面；
+3. 用真实商业逻辑与真实行业数据说话；能算的账必须算，能对比的必须对比；
+4. 证据不足的维度明确标注【证据不足】，并给出最合理的推断与验证路径，而不是跳过；
+5. 永远站在决策者角度：如果是你自己拿真金白银做这个决策，你会怎么做？
+
+### 输入类型识别（只用于确定分析起点，绝不用于裁剪分析范围）
+判断该输入属于哪类商业观察（可多选）：广告 / 店铺 / 商品 / 抱怨 / 产品服务 / 消费决策 / 商业新闻 / 其他。
+
+### 七大分析框架（必须逐一全部运行，逐项"分析过程→结论"；七个框架一律用 1-7 数字编号输出，禁止用"一、二…"中文编号）
+1. **广告拆解——拆广告如拆生意**：你看到的不是一条广告，而是一个"用钱买注意力、再换成信任与成交"的微型生意。①还原真实交易结构：卖什么？谁在付钱？要用什么成本换取什么回报？②解剖"钩子-主推-变现"三层结构：表面钩子（引流噱头）→真正主推的产品/服务→背后的变现路径（私域/复购/后端产品），画面最显眼的≠真正赚钱的；③七步心理闭环逐环验证（①破坏稳态 ②镜像投射 ③痛点放大 ④权威登场 ⑤展示神迹 ⑥风险逆转 ⑦临门一脚），判断每一环是否成立、哪一环最弱（那是转化流失点）；④人群精准度判定：说给谁听？人群与产品是否错位？错位就是浪费预算；⑤算经济账：按行业平均点击成本/转化率推算一单获客成本约多少？客单价能否覆盖？持续投放成立吗？⑥商业判断：底层逻辑可复制吗？可迁移到哪些行业？能提取什么"通用武器"？
+2. **店铺诊断——像投资机构尽调一家店**：把这家店当作一份待投资的商业计划书来体检。①定位与假设反推：做什么生意？服务谁？凭什么让人选它而不是隔壁三家？②单店经济模型（UE）：客流×转化率×客单价=收入端；房租/人工/原料/水电/损耗/平台费=成本端；推算月保本收入、日均保本单量，判断它离保本线多远；③飞轮诊断：流量入口（自然/线上/复购）→转化能力（产品/价格/服务）→复购与口碑，哪一环在漏血？④现金流断点检查：生意死掉通常不是不赚钱而是现金断流——检查账期、库存、压货风险；⑤20种系统性死法对照：逐条对照并★标注高概率项，说明为什么是这几种；⑥竞争与壁垒：护城河是什么？隔壁开一家同款它能活吗？⑦改造方案：若由你接手，按"止血→回血→造血"排序给出3个动作，每个说明预期效果与验证时间。
+3. **利润感知——利润地图与定价权**：利润不是算出来的，是"分配"出来的——画出整条产业链上钱怎么流动。①全链路利润地图：原料→加工→品牌→渠道→终端，每一级加价多少？谁拿走最大份额？为什么？②拆解成本结构：原料/人工/房租/平台/营销→毛利→净利，找出最重的成本项和最不合理的加价点；③定价权判断：谁在定价格（品牌/渠道/平台/消费者）？有定价权的一方拿走超额利润；④供应链博弈：上游几家供应商？替代成本？下游渠道集中度？谁更强势、谁在吃利润；⑤利润真实性检查：账面利润vs现金利润（应收/库存/账期）；规模扩大后边际成本是升是降；⑥给出指导：如果你是经营者，在哪个环节发力能多赚一倍？如果你是观察者，这条利润结构里藏着什么商机/风险？
+4. **供需挖掘——商机雷达：真需求×对供给×好时机×可执行**：需求不稀缺，稀缺的是"真实、强烈、愿意付钱、尚未被满足"的需求。①需求翻译三层：表面需求（嘴上说的）→深层需求（真正想要的）→隐藏需求（连用户自己都没意识到的）；②需求真伪打分：强度（多痛）×频率（多久一次）×支付意愿（愿花多少钱），三项都高才是真需求，缺一项要给出验证方法；③供给端扫描：谁在满足它（巨头/小玩家/没人做）？供给质量如何？缺口在哪？④时机判断：处于趋势什么位置（萌芽/爆发/成熟/衰退）？判断依据是什么？⑤人群画像：谁最痛？规模多大？获客渠道在哪？⑥商机方案2-3个：每个给出MVP长什么样+目标用户+定价假设+7天验证步骤（每天做什么、看什么指标）；⑦一句话结论：这个商机值不值得做？为什么？
+5. **用户画像——像顶级产品经理一样理解人**：你不是在描述用户，你是在"成为"他——理解到能替他说出他自己说不出口的话。①画用户：具体到有体温的人——名字、年龄、职业、收入、一天怎么过、在什么场景会想起这个产品；②定任务（JTBD）：用户"雇佣"这个产品完成什么任务？用"动词+场景+期望的情绪结果"表达；③决策心理账户：他从哪个账户付钱（日常/投资/情感/应急）？价格锚点是什么？对比对象是谁？④找替代品：至少3个真实替代方案（包括"不买/将就"），说明用户为什么可能选它们；⑤支付意愿深挖：什么情况下愿意多付50%？什么情况下转身就走？⑥一句话非买理由：找出用户内心那个"不买的真实理由"（往往是信任/麻烦/面子/习惯，不是价格），并给出化解动作；⑦评估LTV：一个用户一生能带来多少价值？这决定你愿意花多少钱获客。
+6. **资金判断——像CFO一样做决策**：钱的判断不是"花得值不值"，而是"这笔钱的机会成本与风险敞口"。①定性：🔴纯消耗/🟢资产型/🟡需反思——给出定性依据，而非贴标签；②回报三问：多久能回来（回收期）？回报率跑赢什么（对比无风险收益与机会成本）？不花这笔钱最坏结果是什么？③现金流视角：一次性支出还是持续流出？现金流会不会断掉？④风险与杠杆：占可支配资金比例多少？最坏损失多少、能否承受？有没有杠杆放大风险？⑤沉没成本检查：是否因"已经投入很多"而继续加码？——最常见的决策陷阱；⑥决策结论：明确"值得做/值得投/值得学/必须停"之一，给出理由与执行边界（什么条件下止损/追加）。
+7. **信息提炼——信息战视角：看穿说话的人**：信息没有中立——每个信息背后都有人，每个人都有立场。你的任务是找出立场，还原事实。①30秒三要素：核心结论？利弊各一？可迁移点？——先建立骨架；②还原底层逻辑：现象背后的商业机制是什么？为什么发生？（第一性原理，不套流行说法）；③利益链拆解：谁发布的？为什么说？谁受益？谁受损？——信息是武器，先看握枪的人；④区分信号与噪音：哪些是事实、观点、情绪、营销？逐一标注；⑤模拟决策者：如果你是关键角色（老板/政府/资本/消费者）会怎么做？你的反应说明了什么？⑥可验证预测：给出1-2条可检验的预测+追踪指标+时间窗口；⑦套利视角：这条信息里信息差在哪？普通人/商家/投资者分别能做什么？
+
+### 跨维度交叉洞察——全局鸟瞰：从交叉处发现单维度看不见的东西
+七个框架已各自给出结论，这里要把它们**交叉**起来，找出单独看任何一个维度都发现不了的判断。大师级要求：每条给出"**结论（加粗）→ 依据（引用哪几个框架的哪个结论，用事实/数字支撑）→ 置信度（高/中/低）**"，禁止空泛总结。
+1. **最让你意外的一个发现**：哪些框架的结论放在一起产生了冲突或反直觉结果？它为什么重要？——这往往是最大的认知增量
+2. **最有行动价值的一个洞察**：把不同框架的结论组合成一条**可直接执行**的行动（做什么 + 花多少钱 + 验证什么指标），给出关键数字
+3. **最值得持续追踪的一条线索**：哪条线索值得长期跟踪？给出来源、追踪频率、什么信号出现说明判断成立或失效
+
+### 决策方案——像顶级顾问一样给出可执行的决策
+基于七大框架与交叉洞察，分别站在三类决策者角度给出**明确**判断。每条结构：**结论（加粗，明确说"做/不做/怎么做"）→ 理由（引用分析依据）→ 行动计划（动作 + 预算数字区间 + 时间 + 验证指标）→ 风险与止损线**。禁止模棱两可、禁止只给一句空话。
+- **创业者**：这告诉你一个什么机会或威胁？下一步具体做什么——先做什么、花多少钱（给出数字区间）、多久能验证、看什么指标？出现什么信号就该止损或加码？
+- **投资者**：值不值得投入？明确回答"**投 / 不投 / 观望**"并给理由；若值得，投多少、预期回报区间、最大风险是什么、什么条件下退出？
+- **消费者**：这如何改变你的购买决策？值得花多少钱、应该避开什么坑、什么情况下坚决不买？`;
+
 // ==================== MEDIA INTERPRETATION SKILL ====================
 // 媒体解读技能：强制从"画面描述"推进到"真实意图"，避免停留在风格/配色层面。
 const MEDIA_SKILL_SYSTEM=`## 媒体解读技能（当用户附带图片/视频时必须执行）
@@ -1124,14 +1192,7 @@ const MEDIA_SKILL_SYSTEM=`## 媒体解读技能（当用户附带图片/视频�
 5. 真实意图判断：表面卖 X、实际推 Y 的情况（钩子引流/测品/清库存/养号等）；文案与画面是否夸大或矛盾（标注可疑点）
 
 ### 第三段：详细解读分析（与文字输入完全相同，禁止省略维度）
-判定画面内容属于哪类商业观察（广告截图/店铺或门头照片/商品图/聊天或朋友圈截图/电商页面/新闻或数据截图/线下活动等），然后运行全部适用的分析框架，逐项"分析过程→结论"，输出同等深度与细节：
-- 广告拆解：七步心理闭环、七层心智触发模型、六种情感扳机、成交路径全链路还原
-- 店铺诊断：收入端估算、成本端拆解、月保本收入、20种系统性死法对照（★标注高概率项）
-- 利润感知：成本结构估算、加价路径分析、供应链博弈
-- 供需挖掘：需求翻译、目标人群画像、商机方案设计、7天快速验证步骤
-- 用户画像：画用户（有体温的人）、定任务、找替代品、支付意愿、一句话非买理由
-- 资金判断：纯消耗/资产型/需反思、回报三问、机会成本、决策建议
-- 信息提炼：30秒三要素、利益链分析、模拟决策者、预测与追踪
+判定画面内容属于哪类商业观察（广告截图/店铺或门头照片/商品图/聊天或朋友圈截图/电商页面/新闻或数据截图/线下活动等），然后按**用户消息（主提示词）中给出的"全部七大分析框架"大师级细则**（广告拆解/店铺诊断/利润感知/供需挖掘/用户画像/资金判断/信息提炼）逐一完整运行，逐项"分析过程→结论"，输出同等深度与细节，禁止因"画面是图片"而省略或简化任何维度。
 若某维度画面信息不足，明确说明"该维度证据不足"，并给出从画面可推导的合理推断；**禁止因输入是图片而省略维度或只做广告拆解**。
 
 ### 收尾：跨维度洞察与行动方案
@@ -1187,77 +1248,20 @@ function buildMessages(){
     return messages;
 }
 
+// 输出格式要求：作为"指令"放在系统消息里，避免模型把它当成分析内容输出
+const OUTPUT_FORMAT=`## 输出格式要求（这是给你的指令，不要把这些文字当作分析内容输出）
+- 七个框架用 **1-7 数字编号**独立成节（广告拆解=1 … 信息提炼=7）；跨维度洞察、决策方案等章节标题**不加编号**
+- 每节结构：分析过程 → 结论 → 【可执行动作 / 关键数字 / 主要风险】
+- 判断给出置信度（高/中/低），数据给出估算口径
+- Markdown 输出，重点加粗，禁止空话套话
+- **格式一致性：所有章节（含跨维度洞察、决策方案）的输出格式必须与七大框架保持同一丰富度——标题层级、**加粗**、🔴🟢🟡/★ 颜色标记、具体数字与场景，禁止出现"只有一行干巴巴 bullet"的收尾章节**
+- **篇幅纪律：每个框架精炼输出、宁精勿滥；必须确保七个框架全部呈现完整后再展开细节；输出结束前自查七个框架是否全部输出，实在写不完时必须明确注明"以下框架因篇幅省略：X、Y"**
+- **禁止把"分析铁律""输出格式要求"这类指令章节本身当作输出内容**`;
+
 const SYSTEM_PROMPT_FULL=`## 输入
 用户提供了以下商业观察内容。
 
-## 分析要求
-
-### 一、自动识别输入类型
-判断该输入涉及哪些分析维度（可多选）：
-□ 广告逻辑 □ 店铺诊断 □ 利润感知 □ 供需缺口 □ 用户画像 □ 资金判断 □ 信息提炼
-
-### 二、运行所有适用的分析框架
-对每个相关维度，运行完整的分析框架，输出"分析过程→结论"：
-
-**如果是广告/营销内容：**
-- 目标用户反向工程（从内容反推画像）
-- 七步心理闭环：①破坏稳态 ②镜像投射 ③痛点放大 ④权威登场 ⑤展示神迹 ⑥风险逆转 ⑦临门一脚
-- 七层心智触发模型定位（1猎奇 2占便宜 3便利 4安全焦虑 5性吸引力 6身份认同 7自我实现）
-- 六种情感扳机识别（恐惧、渴望、愧疚、懒惰、从众、贪婪）
-- 成交路径全链路还原
-- 可迁移的商业洞察
-
-**如果是店铺/实体商业：**
-- 定位与商业假设反推
-- 收入端估算（客流×转化率×客单价）
-- 成本端拆解→月保本收入
-- 20种系统性死法对照（★标注高概率项）
-- 如果是你接手，3个优化动作
-
-**如果是商品/消费/定价：**
-- 成本结构估算（原料/人工/房租/平台/营销→毛利→净利）
-- 加价路径分析
-- 行业参考值对比
-- 促销逻辑拆解（如适用）
-
-**如果是抱怨/痛点/不便：**
-- 原始信号解读
-- 需求翻译（表面→深层→隐藏）
-- 目标人群画像
-- 商机假设方案（2-3个）
-- 付费意愿评估
-- 7天快速验证步骤
-
-**如果是产品/服务：**
-- 画用户（具体到有体温的人）
-- 定任务（动词+场景+情绪结果）
-- 找替代品（至少3个）
-- 支付意愿分析
-- 一句话非买理由
-
-**如果是消费决策/支出：**
-- 🔴纯消耗 / 🟢资产型 / 🟡需反思
-- 回报三问逐条分析
-- 机会成本
-- 决策建议
-
-**如果是商业新闻/信息：**
-- 30秒三要素（核心结论/利弊各一/可迁移点）
-- 现象拆解与底层逻辑
-- 利益链分析
-- 模拟决策者
-- 预测与追踪设定
-
-### 三、跨维度交叉洞察
-从多维度分析中提炼：
-1. 最让你意外的一个发现
-2. 最有行动价值的一个洞察
-3. 最值得持续追踪的一条线索
-
-### 四、行动方案
-- 如果你是**创业者**，这告诉你什么？
-- 如果你是**投资者**，这告诉你什么？
-- 如果你是**消费者**，这如何改变你的决策？`;
+`+FRAMEWORKS_DETAIL;
 
 async function buildFullPrompt(onProgress){
     const text=$('main-input').value.trim();
@@ -1277,18 +1281,20 @@ async function callAI(messages,onChunk,onDone,onErr,overrideProv){
     const hasImages=attachments.some(a=>a.type==='image');
     const isDeepSeekV4=!overrideProv&&(/v4-flash|v4-pro/.test(cfg.model||''));
 
-    // Build request body
-    const body={
-        model:activeProv.model,
-        messages:messages,
-        stream:true,
-        max_tokens:8000,
-        temperature:0.7
-    };
-    // DeepSeek V4: 关闭思考模式以获得直接输出
-    if(isDeepSeekV4)body.thinking={type:'disabled'};
+    // 输出上限：先尝试 32000，若 API 拒绝（模型/网关不支持）自动降级 16000 → 8000 重试
+    const MAX_TOKENS=[32000,16000,8000];
+    let maxIdx=0;
 
-    try{
+    const doFetch=async()=>{
+        const body={
+            model:activeProv.model,
+            messages:messages,
+            stream:true,
+            max_tokens:MAX_TOKENS[maxIdx],
+            temperature:0.7
+        };
+        // DeepSeek V4: 关闭思考模式以获得直接输出
+        if(isDeepSeekV4)body.thinking={type:'disabled'};
         const r=await fetch((activeUrl||baseUrl())+'chat/completions',{
             method:'POST',
             headers:{'Content-Type':'application/json','Authorization':'Bearer '+activeKey},
@@ -1298,15 +1304,26 @@ async function callAI(messages,onChunk,onDone,onErr,overrideProv){
         if(!r.ok){
             const e=await r.json().catch(()=>({}));
             let errMsg=e.error?.message||r.status+'';
+            // max_tokens 超限 → 降级到更小的上限重试一次
+            if(maxIdx<MAX_TOKENS.length-1&&/max_tokens|maximum context|exceeds|invalid.*token|context length/i.test(errMsg)){
+                maxIdx++;
+                return await doFetch();
+            }
             // If vision error with non-vision model, suggest model change
             if(hasImages && (errMsg.includes('vision')||errMsg.includes('image')||errMsg.includes('image_url'))){
                 errMsg+='\n\n💡 提示：该模型实际不支持直接发送图片。商人之眼已内置"图片转结构图+OCR"模式与看图备用模型（配置面板可见）；也可换用 gpt-4o、claude、gemini、qwen-vl、glm-4v-flash（免费）等视觉模型。';
             }
-            onErr('API 错误: '+errMsg);return;
+            onErr('API 错误: '+errMsg);return null;
         }
+        return r;
+    };
+
+    try{
+        const r=await doFetch();
+        if(!r)return;
         const reader=r.body.getReader();
         const dec=new TextDecoder();
-        let buf='',full='';
+        let buf='',full='',truncated=false;
         while(true){
             const{done,value}=await reader.read();
             if(done)break;
@@ -1317,16 +1334,36 @@ async function callAI(messages,onChunk,onDone,onErr,overrideProv){
                 if(!t.startsWith('data:'))continue;
                 const d=t.slice(5).trim();
                 if(d==='[DONE]')continue;
-                try{const j=JSON.parse(d);const c=j.choices?.[0]?.delta?.content||'';if(c){full+=c;onChunk(full)}}catch(e){}
+                try{
+                    const j=JSON.parse(d);
+                    const c=j.choices?.[0]?.delta?.content||'';
+                    if(c){full+=c;onChunk(full)}
+                    // 检测是否因长度上限被截断
+                    if(j.choices?.[0]?.finish_reason==='length')truncated=true;
+                }catch(e){}
             }
         }
-        onDone(full);
+        // 处理流末尾可能残留的未换行数据（防止尾部内容丢失）
+        if(buf.trim()){
+            const t=buf.trim();
+            if(t.startsWith('data:')){
+                const d=t.slice(5).trim();
+                if(d!=='[DONE]'){
+                    try{
+                        const j=JSON.parse(d);
+                        const c=j.choices?.[0]?.delta?.content||'';
+                        if(c){full+=c;onChunk(full)}
+                        if(j.choices?.[0]?.finish_reason==='length')truncated=true;
+                    }catch(e){}
+                }
+            }
+        }
+        onDone(full,truncated);
     }catch(e){
         if(e.name==='AbortError')onErr('已取消');
         else onErr('网络错误: '+e.message);
     }
 }
-
 // ==================== RENDER ====================
 function renderMd(text){
     return text
@@ -1358,6 +1395,16 @@ async function run(){
     const text=$('main-input').value.trim();
     if(!text && attachments.length===0){alert('请先输入内容或添加图片/链接');return}
 
+    // 新一轮分析：重置追问上下文，隐藏追加提问面板
+    conv=[];
+    lastUserContext=text+(attachments.length?'\n\n'+attachments.map(a=>
+        a.type==='image'?'[已附带图片: '+a.name+']':
+        a.type==='link'?'[已附带链接: '+a.data+']':
+        a.type==='video'?'[已附带视频: '+a.name+(a.data&&a.data.startsWith('data:')?'（本地文件）':a.data)+']':
+        a.type==='audio'?'[已附带录音: '+a.name+']':''
+    ).filter(Boolean).join('\n'):'');
+    const fb=$('follow-box');if(fb){fb.classList.remove('show');$('follow-err').textContent=''}
+
     const out=$('output'),body=$('out-body'),btn=$('go-btn');
     out.classList.add('show');
     body.innerHTML='<div class="ld"><div class="ld-d"><span></span><span></span><span></span></div><div><div>AI 正在分析中...</div><div class="ld-t" id="tmr">0秒</div><div class="ld-t" id="medstat" style="color:var(--gold)"></div></div></div>';
@@ -1377,7 +1424,7 @@ async function run(){
     const vision=isVisionModel()||useVisionFallback;
     const isDeepSeekV4=!useVisionFallback&&(/v4-flash|v4-pro/.test(cfg.model||''));
 
-    const SYSTEM='你是一位融合广告心理学、商业模式诊断、用户思维、财务分析和信息判断的顶级商业分析师——"商人之眼"。请按照用户要求的框架进行深度分析。逐项展开，每项都有"分析过程→结论"。用具体数字和场景论证，给出可直接行动的建议。用Markdown格式输出。'+(hasMedia?'\n\n'+MEDIA_SKILL_SYSTEM:'');
+    const SYSTEM='你是一位融合广告心理学、商业模式诊断、用户思维、财务分析和信息判断的顶级商业分析师——"商人之眼"。**分析铁律：无论用户输入什么（文字/图片/视频/链接/新闻/抱怨等），都必须按用户消息中给出的七大框架大师级细则逐一完整分析，禁止省略维度**；每个维度输出"分析过程→结论"，信息不足的维度标注【证据不足】并给出合理推断；用具体数字和场景论证，给出可直接行动的建议；用Markdown格式输出。'+(hasMedia?'\n\n'+MEDIA_SKILL_SYSTEM:'')+'\n\n'+OUTPUT_FORMAT;
     let messages;
 
     if((hasImages||hasVideoFiles)&&vision){
@@ -1444,13 +1491,24 @@ async function run(){
         body.innerHTML=`<div style="text-align:center;padding:30px;color:var(--rd)">${err}</div><div style="text-align:center;margin-top:14px"><button class="tool-btn" onclick="openMo()">⚙️ 配置 AI</button></div>`;
         btn.disabled=false;btn.textContent='🚀 运行全维分析';
     };
-    const done=(full)=>{
+    const done=(full,truncated)=>{
         consumeUse();
         clearInterval(ti);
         const s=((Date.now()-t0)/1000|0);
-        body.innerHTML=renderMd(full)+`<div style="text-align:right;color:var(--tx3);font-size:.72rem;margin-top:14px;padding-top:10px;border-top:1px solid var(--bd)">分析完成 · ${s}秒 · ${provLabel}</div>`;
+        // 完整性自检：七个框架 + 收尾是否全部出现在输出中
+        const KEYS=['广告拆解','店铺诊断','利润感知','供需挖掘','用户画像','资金判断','信息提炼','跨维度交叉洞察','决策方案'];
+        const missing=KEYS.filter(k=>!full.includes(k));
+        const incomplete=truncated||missing.length>0;
+        const warn=incomplete
+            ?`<div style="margin-top:10px;padding:9px 12px;background:rgba(184,90,90,.1);border:1px solid var(--rd);border-radius:10px;color:var(--rd);font-size:.8rem;line-height:1.7">⚠️ 本次输出不完整${truncated?'（已达模型单次输出上限）':''}${missing.length?'：未输出【'+missing.join('、')+'】':''}。建议：换用输出上限更高的模型，或在下方【💬 追加提问】补全缺失部分。</div>`
+            :'';
+        const tip=`<div style="margin-top:10px;padding:9px 12px;background:var(--gg);border:1px solid var(--gd);border-radius:10px;color:var(--gold);font-size:.8rem;line-height:1.7">💬 分析${incomplete?'结束':'完成'}。想深挖任何一点？在下方【追加提问】输入问题，AI 会结合前文重新全维分析。</div>`;
+        body.innerHTML=renderMd(full)+`<div style="text-align:right;color:var(--tx3);font-size:.72rem;margin-top:14px;padding-top:10px;border-top:1px solid var(--bd)">分析${incomplete?'结束(不完整)':'完成'} · ${s}秒 · ${provLabel}</div>`+warn+tip;
         body.scrollTop=body.scrollHeight;
         btn.disabled=false;btn.textContent='🔄 重新分析';
+        // 记录本轮对话上下文，供"追加提问"使用
+        conv=[{role:'user',content:lastUserContext||'（无文字输入，仅附件）'},{role:'assistant',content:full}];
+        showFollow();
     };
     callAI(
         messages,
@@ -1479,6 +1537,75 @@ function copyOut(){
         setTimeout(()=>{b.textContent='📋 复制'},1500);
     });
 }
+
+// ==================== FOLLOW-UP QUESTIONS ====================
+// 追加提问：结合原始输入与前文分析，对追问从全部七大维度重新全方位剖析
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+const IS_TOUCH=('ontouchstart' in window)||navigator.maxTouchPoints>0;
+function showFollow(){
+    const fb=$('follow-box');if(!fb)return;
+    fb.classList.add('show');
+    const b=$('follow-btn');if(b){b.disabled=false;b.textContent='🔍 追问 · 全维分析'}
+    const fi=$('follow-input');
+    if(fi&&!fi.value&&!IS_TOUCH)fi.focus({preventScroll:true});
+    fb.scrollIntoView({behavior:'smooth',block:'start'});
+}
+const SYSTEM_FOLLOW=`你是一位融合广告心理学、商业模式诊断、用户思维、财务分析和信息判断的顶级商业分析师——"商人之眼"。用户刚刚完成了一轮全维分析，现在针对结果追加提问。
+
+## 追问分析铁律（与首轮分析同等深度，禁止省略维度）
+1. 必须结合【原始输入】与【前一轮分析】的上下文作答，先简要复述相关背景再分析。
+2. 对用户的追加问题，必须按与分析首轮完全相同的大师级细则，从**全部七大维度**逐一重新扫描、全方位详细分析（细则如下）。
+3. 如果追加问题聚焦某一点，也要先做全维度扫描，再重点深入该点，而不是只回答该点。
+
+`+FRAMEWORKS_DETAIL+'\n\n'+OUTPUT_FORMAT;
+function trimConv(){
+    // 保留首轮上下文（前2条）+ 最近5轮（后10条），防止上下文过长超模型上限
+    if(conv.length<=12)return;
+    conv=conv.slice(0,2).concat(conv.slice(-10));
+}
+async function askFollow(){
+    if(followBusy)return;
+    const st=authStatus();
+    if(!st.ok){alert(st.msg);if(!auth)$('login-mo').classList.add('open');return}
+    const q=$('follow-input').value.trim();
+    if(!q){alert('请先输入追加问题');$('follow-input').focus();return}
+    const body=$('out-body'),btn=$('follow-btn'),err=$('follow-err');
+    followBusy=true;
+    btn.disabled=true;btn.textContent='⏳ 追问分析中...';err.textContent='';
+    // 在输出区追加问题气泡，并新建答案容器
+    body.insertAdjacentHTML('beforeend',`<div class="q-bubble"><b>💬 追问：</b>${esc(q)}</div>`);
+    $('follow-input').value='';
+    const ansDiv=document.createElement('div');ansDiv.className='md';
+    body.appendChild(ansDiv);
+    body.scrollTop=body.scrollHeight;
+    // 组装消息：系统追问规则 + 前文对话 + 追加问题
+    const messages=[{role:'system',content:SYSTEM_FOLLOW}];
+    if(conv.length)conv.forEach(m=>messages.push(m));
+    else messages.push({role:'user',content:lastUserContext||'（原始输入）'});
+    messages.push({role:'user',content:q});
+    const t0=Date.now();
+    const done=(full,truncated)=>{
+        consumeUse();
+        const warn=truncated?`<div style="margin-top:10px;padding:9px 12px;background:rgba(184,90,90,.1);border:1px solid var(--rd);border-radius:10px;color:var(--rd);font-size:.78rem;line-height:1.7">⚠️ 本次追问输出被截断，可再追问一次继续补全。</div>`:'';
+        const meta=`<div class="a-meta">追问完成 · ${((Date.now()-t0)/1000|0)}秒</div>`;
+        body.insertAdjacentHTML('beforeend',renderMd(full)+warn+meta);
+        body.scrollTop=body.scrollHeight;
+        conv.push({role:'user',content:q},{role:'assistant',content:full});
+        trimConv();
+        followBusy=false;
+        btn.disabled=false;btn.textContent='🔍 追问 · 全维分析';
+        const fi=$('follow-input');if(fi&&!IS_TOUCH)fi.focus({preventScroll:true});
+    };
+    const fail=(e)=>{
+        err.textContent='追问失败：'+e;
+        followBusy=false;
+        btn.disabled=false;btn.textContent='🔍 追问 · 全维分析';
+    };
+    callAI(messages,(t)=>{ansDiv.innerHTML=renderMd(t);body.scrollTop=body.scrollHeight},done,fail,null);
+}
+$('follow-input').addEventListener('keydown',e=>{
+    if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();askFollow()}
+});
 
 // ==================== CAMERA ====================
 let camStream=null,camFacing='environment',snapData='';
@@ -1753,7 +1880,7 @@ if (isWechat) {
 }
 
 // ==================== VERSION & AUTO UPDATE ====================
-const APP_VERSION='v20260816g';
+const APP_VERSION='v20260816h';
 // Check for updates every 30 seconds
 setInterval(()=>{
     fetch('index.html',{cache:'no-store',method:'HEAD'}).then(r=>{
