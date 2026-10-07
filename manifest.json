@@ -1,13 +1,13 @@
-﻿{
-  "name": "鍟嗕汉涔嬬溂 鈥?AI鍟嗕笟鍒嗘瀽寮曟搸",
-  "short_name": "鍟嗕汉涔嬬溂",
-  "description": "杈撳叆浠讳綍鍟嗕笟瑙傚療锛孉I鑷姩杩愯鍏ㄥ鎬濈淮妗嗘灦锛岃緭鍑烘繁搴﹁В璇讳笌琛屽姩鏂规銆?,
+{
+  "name": "商人之眼 — AI商业分析引擎",
+  "short_name": "商人之眼",
+  "description": "看懂生意并解决问题：七大框架洞察 + 问题定义 + 底层归因 + 多方案比选 + 红队攻击 + 评估推荐 + 落地路线图，一份报告洞察与方案一体。",
   "start_url": "index.html",
   "display": "standalone",
   "background_color": "#0a0c10",
   "theme_color": "#0a0c10",
   "orientation": "portrait",
-  "scope": "/",
+  "scope": "./",
   "lang": "zh-CN",
   "icons": [
     {
@@ -22,4 +22,3 @@
     }
   ]
 }
-
