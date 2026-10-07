@@ -22,10 +22,10 @@ self.addEventListener('activate', event => {
 
 self.addEventListener('fetch', event => {
   const req = event.request;
-  const OFFLINE = new Response('<h1>离线模式</h1><p>请连接网络后刷新。</p>', {
+  const OFFLINE = new Response('<h1>绂荤嚎妯″紡</h1><p>璇疯繛鎺ョ綉缁滃悗鍒锋柊銆?/p>', {
     headers: { 'Content-Type': 'text/html; charset=utf-8' }
   });
-  // 主页面走 network-first：在线时始终拿最新版（更新即开即得），离线回退缓存
+  // 涓婚〉闈㈣蛋 network-first锛氬湪绾挎椂濮嬬粓鎷挎渶鏂扮増锛堟洿鏂板嵆寮€鍗冲緱锛夛紝绂荤嚎鍥為€€缂撳瓨
   if (req.mode === 'navigate' || req.url.indexOf('merchant-eye-toolkit.html') !== -1) {
     event.respondWith(
       fetch(req).then(res => {
@@ -38,8 +38,7 @@ self.addEventListener('fetch', event => {
     );
     return;
   }
-  // 其余资源（字体等）维持缓存优先
-  event.respondWith(
+  // 鍏朵綑璧勬簮锛堝瓧浣撶瓑锛夌淮鎸佺紦瀛樹紭鍏?  event.respondWith(
     caches.match(req).then(response => response || fetch(req).catch(() => OFFLINE))
   );
 });
